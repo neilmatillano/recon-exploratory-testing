@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact List</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      height: fit-content;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], input[type="tel"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #2d3748;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #4299e1;
+      box-shadow: 0 0 0 3px rgba(66,153,225,0.15);
+    }
+
+    .btn-add {
+      width: 100%;
+      padding: 11px;
+      background: #4299e1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+    }
+
+    .btn-add:hover { background: #3182ce; }
+    .btn-add:active { background: #2b6cb0; }
+
+    .confirm-msg {
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      border-radius: 8px;
+      color: #276749;
+      font-size: 0.88rem;
+      font-weight: 500;
+      display: none;
+    }
+
+    .confirm-msg.visible { display: block; }
+
+    .divider {
+      border: none;
+      border-top: 1.5px solid #e2e8f0;
+      margin: 28px 0;
+    }
+
+    .contact-list-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 12px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #a0aec0;
+      font-size: 0.9rem;
+      padding: 20px 0;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1.5px solid #e2e8f0;
+      margin-bottom: 10px;
+      background: #f7fafc;
+      gap: 8px;
+    }
+
+    .contact-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .contact-name {
+      font-weight: 600;
+      color: #1a202c;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .contact-number {
+      font-size: 0.82rem;
+      color: #718096;
+      margin-top: 2px;
+    }
+
+    .contact-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn-call, .btn-delete {
+      padding: 7px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-call {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+
+    .btn-call:hover { background: #9ae6b4; }
+
+    .btn-delete {
+      background: #fed7d7;
+      color: #742a2a;
+    }
+
+    .btn-delete:hover { background: #feb2b2; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Contact List</h1>
+
+    <div class="form-group">
+      <label for="contact-name">Name</label>
+      <input type="text" id="contact-name" placeholder="e.g. Jane Doe" autocomplete="off" />
+    </div>
+
+    <div class="form-group">
+      <label for="contact-number">Phone Number</label>
+      <input type="tel" id="contact-number" placeholder="e.g. +1 555 000 1234" autocomplete="off" />
+    </div>
+
+    <button class="btn-add" onclick="addContact()">Add Contact</button>
+    <div class="confirm-msg" id="confirm-msg"></div>
+
+    <hr class="divider" />
+
+    <div class="contact-list-title">Contacts</div>
+    <div id="contact-list">
+      <div class="empty-state" id="empty-state">No contacts yet. Add one above.</div>
+    </div>
+  </div>
+
+  <script>
+    let contacts = [];
+    let confirmTimeout = null;
+
+    function addContact() {
+      const nameInput = document.getElementById('contact-name');
+      const numberInput = document.getElementById('contact-number');
+      const name = nameInput.value.trim();
+      const number = numberInput.value.trim();
+
+      if (!name || !number) {
+        showConfirm('Please enter both a name and a phone number.', false);
+        return;
+      }
+
+      const contact = { id: Date.now(), name, number };
+      contacts.push(contact);
+      renderList();
+
+      nameInput.value = '';
+      numberInput.value = '';
+      nameInput.focus();
+
+      showConfirm(`"${name}" has been successfully added.`, true);
+    }
+
+    function showConfirm(message, success) {
+      const el = document.getElementById('confirm-msg');
+      el.textContent = message;
+      el.style.background = success ? '#f0fff4' : '#fff5f5';
+      el.style.borderColor = success ? '#9ae6b4' : '#feb2b2';
+      el.style.color = success ? '#276749' : '#742a2a';
+      el.classList.add('visible');
+
+      clearTimeout(confirmTimeout);
+      confirmTimeout = setTimeout(() => el.classList.remove('visible'), 4000);
+    }
+
+    function renderList() {
+      const list = document.getElementById('contact-list');
+      const empty = document.getElementById('empty-state');
+
+      const items = contacts.map(c => `
+        <div class="contact-item" id="item-${c.id}">
+          <div class="contact-info">
+            <div class="contact-name">${escapeHtml(c.name)}</div>
+            <div class="contact-number">${escapeHtml(c.number)}</div>
+          </div>
+          <div class="contact-actions">
+            <button class="btn-call" onclick="callContact('${escapeAttr(c.number)}')">Call</button>
+            <button class="btn-delete" onclick="openDeleteDialog(${c.id}, '${escapeAttr(c.name)}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+
+      if (contacts.length === 0) {
+        list.innerHTML = '<div class="empty-state" id="empty-state">No contacts yet. Add one above.</div>';
+      } else {
+        list.innerHTML = items;
+      }
+    }
+
+    function callContact(number) {
+      window.location.href = `tel:${number}`;
+    }
+
+    function openDeleteDialog(id, name) {
+      if (confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
+        contacts = contacts.filter(c => c.id !== id);
+        renderList();
+      }
+    }
+
+    // Allow Enter key to submit
+    document.getElementById('contact-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('contact-number').focus();
+    });
+    document.getElementById('contact-number').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addContact();
+    });
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function escapeAttr(str) {
+      return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

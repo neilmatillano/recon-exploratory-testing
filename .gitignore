@@ -1,0 +1,7 @@
+node_modules/
+.env
+.claude/
+recordings/*.webm
+memory/store.json
+*.log
+.DS_Store

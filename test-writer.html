@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TestWriter — Test Case Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #7c3aed;
+      --accent-h: #6d28d9;
+      --header-bg: #0f172a;
+
+      --high-bg: #fef2f2; --high-text: #dc2626; --high-border: #fecaca;
+      --med-bg:  #fffbeb; --med-text:  #d97706; --med-border:  #fde68a;
+      --low-bg:  #f0fdf4; --low-text:  #16a34a; --low-border:  #bbf7d0;
+
+      --pos-bg: #eff6ff;  --pos-text: #1d4ed8;
+      --neg-bg: #fef2f2;  --neg-text: #dc2626;
+      --edge-bg: #f5f3ff; --edge-text: #7c3aed;
+      --sec-bg:  #fff7ed; --sec-text:  #c2410c;
+      --perf-bg: #fefce8; --perf-text: #a16207;
+      --a11y-bg: #f0fdfa; --a11y-text: #0f766e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--header-bg);
+      color: #f8fafc;
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .header-brand { display: flex; align-items: center; gap: 10px; }
+
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .brand-name { font-size: 1rem; font-weight: 700; }
+
+    .brand-tag {
+      font-size: 0.7rem;
+      background: rgba(255,255,255,0.1);
+      color: #94a3b8;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+
+    .btn-link {
+      padding: 6px 14px;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    .btn-link:hover { background: #1e293b; color: #f1f5f9; border-color: #475569; }
+
+    /* ── Layout ── */
+    .main { flex: 1; display: flex; flex-direction: column; max-width: 1100px; width: 100%; margin: 0 auto; padding: 24px 16px; gap: 20px; }
+
+    /* ── Input panel ── */
+    .input-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .input-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .panel-title { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+    .panel-sub   { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+    .input-actions { display: flex; gap: 8px; }
+
+    .btn-load {
+      padding: 7px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-load:hover { border-color: var(--accent); color: var(--accent); }
+
+    #findings-input {
+      width: 100%;
+      min-height: 160px;
+      resize: vertical;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: var(--text);
+      line-height: 1.6;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #findings-input:focus { border-color: var(--accent); }
+    #findings-input::placeholder { color: #94a3b8; }
+
+    .generate-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      gap: 12px;
+    }
+
+    #status-msg { font-size: 0.82rem; color: var(--muted); flex: 1; }
+
+    .btn-generate {
+      padding: 10px 24px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn-generate:hover:not(:disabled) { background: var(--accent-h); }
+    .btn-generate:disabled { background: #cbd5e0; cursor: not-allowed; }
+
+    .gen-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .btn-generate.loading .gen-spinner { display: block; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Stats bar ── */
+    #stats-bar {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #stats-bar.visible { display: flex; }
+
+    .stat-total { font-size: 1rem; font-weight: 700; color: var(--text); margin-right: 4px; }
+    .stat-label { font-size: 0.82rem; color: var(--muted); }
+
+    .stat-divider { width: 1px; height: 20px; background: var(--border); }
+
+    .stat-pill {
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .stat-pill:hover { opacity: 0.75; }
+    .pill-high   { background: var(--high-bg); color: var(--high-text); }
+    .pill-medium { background: var(--med-bg);  color: var(--med-text);  }
+    .pill-low    { background: var(--low-bg);  color: var(--low-text);  }
+
+    /* ── Filters ── */
+    #filter-bar {
+      display: none;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    #filter-bar.visible { display: flex; }
+
+    .filter-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+
+    select.filter-sel {
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.82rem;
+      color: var(--text);
+      background: var(--surface);
+      cursor: pointer;
+      outline: none;
+    }
+
+    select.filter-sel:focus { border-color: var(--accent); }
+
+    #search-input {
+      padding: 6px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.82rem;
+      color: var(--text);
+      outline: none;
+      width: 200px;
+    }
+
+    #search-input:focus { border-color: var(--accent); }
+
+    .filter-count {
+      margin-left: auto;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    /* ── Export bar ── */
+    #export-bar {
+      display: none;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #export-bar.visible { display: flex; }
+
+    .export-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-right: 2px; }
+
+    .btn-export {
+      padding: 6px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Progress indicator ── */
+    #progress-indicator {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    #progress-indicator.visible { display: flex; }
+
+    .progress-spinner {
+      width: 20px; height: 20px;
+      border: 2.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Test case cards ── */
+    #results {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #results.visible { display: flex; }
+
+    .tc-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: box-shadow 0.15s;
+    }
+
+    .tc-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+
+    .tc-card.hidden { display: none; }
+
+    .tc-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+      transition: background 0.12s;
+    }
+
+    .tc-header:hover { background: #f8fafc; }
+    .tc-card.open .tc-header { border-bottom-color: var(--border); background: #fafafa; }
+
+    .tc-id {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--muted);
+      font-family: "SF Mono", monospace;
+      flex-shrink: 0;
+      min-width: 46px;
+    }
+
+    .tc-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tc-category {
+      font-size: 0.72rem;
+      color: var(--muted);
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 99px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .badge {
+      padding: 2px 9px;
+      border-radius: 99px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .badge-high   { background: var(--high-bg); color: var(--high-text); border: 1px solid var(--high-border); }
+    .badge-medium { background: var(--med-bg);  color: var(--med-text);  border: 1px solid var(--med-border); }
+    .badge-low    { background: var(--low-bg);  color: var(--low-text);  border: 1px solid var(--low-border); }
+
+    .badge-positive    { background: var(--pos-bg);  color: var(--pos-text);  }
+    .badge-negative    { background: var(--neg-bg);  color: var(--neg-text);  }
+    .badge-edge        { background: var(--edge-bg); color: var(--edge-text); }
+    .badge-security    { background: var(--sec-bg);  color: var(--sec-text);  }
+    .badge-performance { background: var(--perf-bg); color: var(--perf-text); }
+    .badge-a11y        { background: var(--a11y-bg); color: var(--a11y-text); }
+
+    .tc-chevron {
+      color: var(--muted);
+      font-size: 0.7rem;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+
+    .tc-card.open .tc-chevron { transform: rotate(180deg); }
+
+    .tc-body {
+      display: none;
+      padding: 16px;
+      gap: 14px;
+      flex-direction: column;
+    }
+
+    .tc-card.open .tc-body { display: flex; }
+
+    .tc-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .tc-description {
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .tc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .tc-list li {
+      font-size: 0.87rem;
+      color: var(--text);
+      line-height: 1.5;
+      display: flex;
+      gap: 8px;
+    }
+
+    .tc-list.steps li::before {
+      content: attr(data-n) ".";
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      min-width: 20px;
+    }
+
+    .tc-list.bullets li::before {
+      content: "•";
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .tc-section { display: flex; flex-direction: column; }
+
+    .tc-section + .tc-section { border-top: 1px solid var(--border); padding-top: 14px; }
+
+    /* ── Memory reference cards ── */
+    #memory-ref-section {
+      display: none;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    #memory-ref-section.visible { display: block; }
+
+    .mem-ref-hdr {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mem-ref-cards {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mem-ref-card {
+      background: white;
+      border: 1px solid #fde68a;
+      border-radius: 7px;
+      padding: 8px 12px;
+      min-width: 160px;
+      max-width: 220px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+      position: relative;
+    }
+
+    .mem-ref-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+    .mem-ref-card.selected {
+      border-color: #7c3aed;
+      background: #f5f3ff;
+    }
+
+    .mem-ref-card input[type=checkbox] {
+      position: absolute;
+      top: 8px; right: 8px;
+      accent-color: #7c3aed;
+    }
+
+    .mem-type-badge-sm {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 99px;
+      display: inline-block;
+      margin-bottom: 4px;
+    }
+
+    .mem-card-title-sm { font-weight: 600; color: #1e293b; margin-bottom: 2px; line-height: 1.3; }
+    .mem-card-date-sm  { font-size: 0.7rem; color: #94a3b8; }
+    .mem-type-test_suite  { background: #ede9fe; color: #5b21b6; }
+    .mem-type-test_plan   { background: #dcfce7; color: #166534; }
+    .mem-type-exploration { background: #dbeafe; color: #1e40af; }
+
+    /* ── Empty / error states ── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .empty-icon { font-size: 2rem; margin-bottom: 10px; }
+
+    /* ── Summary card ── */
+    #summary-card {
+      display: none;
+      background: #f5f3ff;
+      border: 1px solid #ddd6fe;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 0.87rem;
+      color: #4c1d95;
+      line-height: 1.6;
+    }
+
+    #summary-card.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <div class="brand-icon">🧪</div>
+    <span class="brand-name">TestWriter</span>
+    <span class="brand-tag">Test Case Generator</span>
+  </div>
+  <div class="header-actions">
+    <a href="/testing-agent.html" class="btn-link">← ExploreAI</a>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Input panel -->
+  <div class="input-panel">
+    <div class="input-panel-header">
+      <div>
+        <div class="panel-title">Exploratory Testing Findings</div>
+        <div class="panel-sub">Paste a testing plan, risk assessment, or any exploratory findings from ExploreAI</div>
+      </div>
+      <div class="input-actions">
+        <button class="btn-load" onclick="loadFromExploreAI()" title="Load the latest plan from ExploreAI">📋 Load from ExploreAI</button>
+      </div>
+    </div>
+
+    <textarea
+      id="findings-input"
+      placeholder="Paste exploratory testing findings here — a testing charter, risk areas, test scenarios, edge cases, or any structured notes from your session..."></textarea>
+
+    <!-- Memory reference section (auto-populated) -->
+    <div id="memory-ref-section" style="margin-top:12px;">
+      <div class="mem-ref-hdr">🧠 <span id="mem-ref-label">Relevant sessions from memory</span></div>
+      <div class="mem-ref-cards" id="mem-ref-cards"></div>
+      <p style="font-size:0.75rem;color:#92400e;margin-top:8px;">✓ Checked sessions will be included as reference context during generation.</p>
+    </div>
+
+    <div class="generate-row">
+      <span id="status-msg"></span>
+      <button class="btn-generate" id="gen-btn" onclick="generate()">
+        <div class="gen-spinner"></div>
+        <span class="gen-label">Generate Test Cases</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Progress indicator -->
+  <div id="progress-indicator">
+    <div class="progress-spinner"></div>
+    <span id="progress-text">Analysing findings…</span>
+  </div>
+
+  <!-- Summary -->
+  <div id="summary-card"></div>
+
+  <!-- Stats bar -->
+  <div id="stats-bar">
+    <span class="stat-total" id="stat-total">0</span>
+    <span class="stat-label">test cases</span>
+    <div class="stat-divider"></div>
+    <span class="stat-pill pill-high"   id="stat-high"   onclick="filterByPriority('High')">High: 0</span>
+    <span class="stat-pill pill-medium" id="stat-medium" onclick="filterByPriority('Medium')">Medium: 0</span>
+    <span class="stat-pill pill-low"    id="stat-low"    onclick="filterByPriority('Low')">Low: 0</span>
+    <div class="stat-divider"></div>
+    <div id="export-bar">
+      <span class="export-label">Export:</span>
+      <button class="btn-export" onclick="exportMarkdown()">Markdown</button>
+      <button class="btn-export" onclick="exportJson()">JSON</button>
+      <button class="btn-export" onclick="exportCsv()">CSV</button>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div id="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <select class="filter-sel" id="filter-priority" onchange="applyFilters()">
+      <option value="">All Priorities</option>
+      <option>High</option>
+      <option>Medium</option>
+      <option>Low</option>
+    </select>
+    <select class="filter-sel" id="filter-type" onchange="applyFilters()">
+      <option value="">All Types</option>
+      <option>Positive</option>
+      <option>Negative</option>
+      <option>Edge Case</option>
+      <option>Security</option>
+      <option>Performance</option>
+      <option>Accessibility</option>
+    </select>
+    <select class="filter-sel" id="filter-category" onchange="applyFilters()">
+      <option value="">All Categories</option>
+    </select>
+    <input id="search-input" type="text" placeholder="Search…" oninput="applyFilters()" />
+    <span class="filter-count" id="filter-count"></span>
+  </div>
+
+  <!-- Test case cards -->
+  <div id="results"></div>
+
+</div>
+
+<script>
+  let allTestCases = [];
+
+  // ── Load from ExploreAI ────────────────────────────────────────────────
+  function loadFromExploreAI() {
+    const plan = localStorage.getItem('exploreai_plan');
+    if (!plan) {
+      setStatus('No plan found. Go to ExploreAI and click "Send to TestWriter" after a plan is generated.');
+      return;
+    }
+    document.getElementById('findings-input').value = plan;
+    setStatus('Loaded plan from ExploreAI.');
+  }
+
+  // ── Generate ───────────────────────────────────────────────────────────
+  async function generate() {
+    const findings = document.getElementById('findings-input').value.trim();
+    if (!findings) {
+      setStatus('Please paste exploratory testing findings first.');
+      return;
+    }
+
+    setGenerating(true);
+    showProgress('Analysing findings…');
+    clearResults();
+
+    let tcCount = 0;
+
+    try {
+      const memoryIds = getSelectedMemoryIds();
+      const res = await fetch('/api/write-tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ findings, memoryIds }),
+      });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (payload === '[DONE]') break;
+
+          let ev;
+          try { ev = JSON.parse(payload); } catch { continue; }
+
+          if (ev.error) throw new Error(ev.error);
+
+          if (ev.progress) {
+            tcCount = ev.progress.count;
+            showProgress(`Generating test cases… ${tcCount} written`);
+          }
+
+          if (ev.test_cases) {
+            hideProgress();
+            renderResults(ev.test_cases);
+            autoSaveTestSuite(ev.test_cases);
+          }
+        }
+      }
+    } catch (err) {
+      hideProgress();
+      setStatus('Error: ' + err.message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  // ── Render results ─────────────────────────────────────────────────────
+  function renderResults({ summary, test_cases }) {
+    allTestCases = test_cases || [];
+
+    // Summary
+    if (summary) {
+      const sc = document.getElementById('summary-card');
+      sc.textContent = summary;
+      sc.classList.add('visible');
+    }
+
+    // Stats
+    const high   = allTestCases.filter(tc => tc.priority === 'High').length;
+    const medium = allTestCases.filter(tc => tc.priority === 'Medium').length;
+    const low    = allTestCases.filter(tc => tc.priority === 'Low').length;
+
+    document.getElementById('stat-total').textContent  = allTestCases.length;
+    document.getElementById('stat-high').textContent   = `High: ${high}`;
+    document.getElementById('stat-medium').textContent = `Medium: ${medium}`;
+    document.getElementById('stat-low').textContent    = `Low: ${low}`;
+    document.getElementById('stats-bar').classList.add('visible');
+    document.getElementById('export-bar').classList.add('visible');
+
+    // Category filter options
+    const categories = [...new Set(allTestCases.map(tc => tc.category))].sort();
+    const catSel = document.getElementById('filter-category');
+    catSel.innerHTML = '<option value="">All Categories</option>' +
+      categories.map(c => `<option>${escHtml(c)}</option>`).join('');
+    document.getElementById('filter-bar').classList.add('visible');
+
+    // Render cards
+    const container = document.getElementById('results');
+    container.innerHTML = '';
+    allTestCases.forEach(tc => container.appendChild(buildCard(tc)));
+    container.classList.add('visible');
+
+    updateFilterCount();
+    setStatus(`Generated ${allTestCases.length} test cases.`);
+  }
+
+  function buildCard(tc) {
+    const card = document.createElement('div');
+    card.className = 'tc-card';
+    card.dataset.priority = tc.priority;
+    card.dataset.type     = tc.type;
+    card.dataset.category = tc.category;
+    card.dataset.search   = `${tc.id} ${tc.title} ${tc.description} ${tc.category}`.toLowerCase();
+
+    const priBadgeClass  = `badge-${tc.priority.toLowerCase()}`;
+    const typeBadgeClass = typeClass(tc.type);
+
+    const preList = (tc.preconditions || []).map((p, i) =>
+      `<li data-n="${i+1}">${escHtml(p)}</li>`).join('');
+
+    const stepsList = tc.steps.map((s, i) =>
+      `<li data-n="${i+1}">${escHtml(s)}</li>`).join('');
+
+    const resultsList = tc.expected_results.map(r =>
+      `<li>${escHtml(r)}</li>`).join('');
+
+    card.innerHTML = `
+      <div class="tc-header" onclick="toggleCard(this.closest('.tc-card'))">
+        <span class="tc-id">${escHtml(tc.id)}</span>
+        <span class="tc-title">${escHtml(tc.title)}</span>
+        <span class="tc-category">${escHtml(tc.category)}</span>
+        <span class="badge ${priBadgeClass}">${escHtml(tc.priority)}</span>
+        <span class="badge ${typeBadgeClass}">${escHtml(tc.type)}</span>
+        <span class="tc-chevron">▼</span>
+      </div>
+      <div class="tc-body">
+        <div class="tc-section">
+          <div class="tc-section-title">📝 Description</div>
+          <div class="tc-description">${escHtml(tc.description)}</div>
+        </div>
+
+        ${preList ? `
+        <div class="tc-section">
+          <div class="tc-section-title">⚙️ Preconditions</div>
+          <ul class="tc-list bullets">${preList}</ul>
+        </div>` : ''}
+
+        <div class="tc-section">
+          <div class="tc-section-title">🪜 Steps</div>
+          <ul class="tc-list steps">${stepsList}</ul>
+        </div>
+
+        <div class="tc-section">
+          <div class="tc-section-title">✅ Expected Results</div>
+          <ul class="tc-list bullets">${resultsList}</ul>
+        </div>
+      </div>
+    `;
+
+    return card;
+  }
+
+  function toggleCard(card) {
+    card.classList.toggle('open');
+  }
+
+  // ── Filters ────────────────────────────────────────────────────────────
+  function applyFilters() {
+    const pri  = document.getElementById('filter-priority').value;
+    const type = document.getElementById('filter-type').value;
+    const cat  = document.getElementById('filter-category').value;
+    const q    = document.getElementById('search-input').value.toLowerCase();
+
+    let visible = 0;
+    document.querySelectorAll('.tc-card').forEach(card => {
+      const match =
+        (!pri  || card.dataset.priority === pri) &&
+        (!type || card.dataset.type     === type) &&
+        (!cat  || card.dataset.category === cat) &&
+        (!q    || card.dataset.search.includes(q));
+      card.classList.toggle('hidden', !match);
+      if (match) visible++;
+    });
+    updateFilterCount(visible);
+  }
+
+  function filterByPriority(p) {
+    document.getElementById('filter-priority').value = p;
+    applyFilters();
+  }
+
+  function updateFilterCount(n) {
+    const total = allTestCases.length;
+    const shown = n ?? total;
+    const el = document.getElementById('filter-count');
+    el.textContent = shown < total ? `Showing ${shown} of ${total}` : `${total} test cases`;
+  }
+
+  // ── Export ─────────────────────────────────────────────────────────────
+  function visibleCases() {
+    return allTestCases.filter((_, i) => {
+      const cards = document.querySelectorAll('.tc-card');
+      return cards[i] && !cards[i].classList.contains('hidden');
+    });
+  }
+
+  function exportMarkdown() {
+    const cases = visibleCases();
+    const lines = ['# Test Cases\n'];
+    cases.forEach(tc => {
+      lines.push(`## ${tc.id}: ${tc.title}`);
+      lines.push(`**Category:** ${tc.category} | **Priority:** ${tc.priority} | **Type:** ${tc.type}\n`);
+      lines.push(`**Description:** ${tc.description}\n`);
+      if (tc.preconditions?.length) {
+        lines.push('**Preconditions:**');
+        tc.preconditions.forEach(p => lines.push(`- ${p}`));
+        lines.push('');
+      }
+      lines.push('**Steps:**');
+      tc.steps.forEach((s, i) => lines.push(`${i + 1}. ${s}`));
+      lines.push('\n**Expected Results:**');
+      tc.expected_results.forEach(r => lines.push(`- ${r}`));
+      lines.push('\n---\n');
+    });
+    download('test-cases.md', lines.join('\n'), 'text/markdown');
+  }
+
+  function exportJson() {
+    download('test-cases.json', JSON.stringify({ test_cases: visibleCases() }, null, 2), 'application/json');
+  }
+
+  function exportCsv() {
+    const cols = ['ID', 'Title', 'Category', 'Priority', 'Type', 'Description', 'Preconditions', 'Steps', 'Expected Results'];
+    const rows = visibleCases().map(tc => [
+      tc.id, tc.title, tc.category, tc.priority, tc.type, tc.description,
+      (tc.preconditions || []).join(' | '),
+      tc.steps.join(' | '),
+      tc.expected_results.join(' | '),
+    ]);
+    const csv = [cols, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    download('test-cases.csv', csv, 'text/csv');
+  }
+
+  function download(filename, content, mime) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+    a.download = filename;
+    a.click();
+  }
+
+  // ── UI helpers ─────────────────────────────────────────────────────────
+  function setGenerating(on) {
+    const btn = document.getElementById('gen-btn');
+    btn.disabled = on;
+    btn.classList.toggle('loading', on);
+    btn.querySelector('.gen-label').textContent = on ? 'Generating…' : 'Generate Test Cases';
+    document.getElementById('findings-input').disabled = on;
+  }
+
+  function showProgress(msg) {
+    const el = document.getElementById('progress-indicator');
+    document.getElementById('progress-text').textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function hideProgress() {
+    document.getElementById('progress-indicator').classList.remove('visible');
+  }
+
+  function setStatus(msg) {
+    document.getElementById('status-msg').textContent = msg;
+  }
+
+  function clearResults() {
+    allTestCases = [];
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('stats-bar').classList.remove('visible');
+    document.getElementById('export-bar').classList.remove('visible');
+    document.getElementById('filter-bar').classList.remove('visible');
+    document.getElementById('summary-card').classList.remove('visible');
+  }
+
+  function typeClass(type) {
+    const map = {
+      'Positive': 'badge-positive',
+      'Negative': 'badge-negative',
+      'Edge Case': 'badge-edge',
+      'Security': 'badge-security',
+      'Performance': 'badge-performance',
+      'Accessibility': 'badge-a11y',
+    };
+    return map[type] || 'badge-positive';
+  }
+
+  function escHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ── Memory integration ────────────────────────────────────────────────
+
+  let _memDebounce = null;
+
+  // Search memory whenever findings change
+  document.getElementById('findings-input').addEventListener('input', () => {
+    clearTimeout(_memDebounce);
+    _memDebounce = setTimeout(searchMemoryForFindings, 800);
+  });
+
+  async function searchMemoryForFindings() {
+    const text = document.getElementById('findings-input').value.trim();
+    if (text.length < 20) {
+      document.getElementById('memory-ref-section').classList.remove('visible');
+      return;
+    }
+    try {
+      const res = await fetch('/api/memory/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: text, limit: 4 }),
+      });
+      const memories = await res.json();
+      renderMemRefCards(memories);
+    } catch {}
+  }
+
+  function renderMemRefCards(memories) {
+    const section = document.getElementById('memory-ref-section');
+    const container = document.getElementById('mem-ref-cards');
+    if (!memories.length) { section.classList.remove('visible'); return; }
+
+    document.getElementById('mem-ref-label').textContent =
+      `${memories.length} relevant session${memories.length > 1 ? 's' : ''} found in memory`;
+
+    container.innerHTML = memories.map(m => `
+      <label class="mem-ref-card" onclick="this.classList.toggle('selected')">
+        <input type="checkbox" value="${escHtml(m.id)}" checked />
+        <div class="mem-type-badge-sm mem-type-${m.type}">${memTypeLabel(m.type)}</div>
+        <div class="mem-card-title-sm">${escHtml(m.title)}</div>
+        <div class="mem-card-date-sm">${relDate(m.timestamp)} · ${escHtml(m.metadata?.domain ?? '')}</div>
+      </label>`).join('');
+
+    section.classList.add('visible');
+  }
+
+  // Collect checked memory IDs before generating
+  function getSelectedMemoryIds() {
+    return [...document.querySelectorAll('#mem-ref-cards input[type=checkbox]:checked')]
+      .map(cb => cb.value);
+  }
+
+  // Auto-save after generation completes
+  async function autoSaveTestSuite(testCasesPayload) {
+    const findings = document.getElementById('findings-input').value.trim();
+    const count    = (testCasesPayload.test_cases || []).length;
+    const categories = [...new Set((testCasesPayload.test_cases || []).map(tc => tc.category))];
+    const content  = `Test Suite (${count} cases)\nCategories: ${categories.join(', ')}\n\nFindings summary:\n${findings.slice(0, 1500)}\n\nSummary:\n${testCasesPayload.summary || ''}`;
+    try {
+      await fetch('/api/memory/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'test_suite',
+          content,
+          metadata: { testCount: count, categories },
+        }),
+      });
+    } catch {}
+  }
+
+  function memTypeLabel(t) {
+    return { exploration: 'Exploration', test_plan: 'Test Plan', test_suite: 'Test Suite' }[t] ?? t;
+  }
+
+  function relDate(ts) {
+    const d = Math.floor((Date.now() - new Date(ts)) / 86400000);
+    if (d === 0) return 'Today';
+    if (d === 1) return 'Yesterday';
+    if (d < 7)  return `${d}d ago`;
+    return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  // On load: auto-detect ExploreAI data and show a banner if present
+  window.addEventListener('DOMContentLoaded', () => {
+    const plan = localStorage.getItem('exploreai_plan');
+    if (plan) {
+      showExploreAIBanner(plan);
+    }
+    // Also honour the legacy ?autoload=1 param
+    if (location.search.includes('autoload=1')) {
+      loadFromExploreAI();
+      setTimeout(searchMemoryForFindings, 400);
+    }
+  });
+
+  function showExploreAIBanner(plan) {
+    // Remove any existing banner
+    document.getElementById('exploreai-banner')?.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'exploreai-banner';
+    banner.style.cssText = `
+      background: #f5f3ff;
+      border: 1.5px solid #c4b5fd;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    `;
+    const preview = plan.slice(0, 120).replace(/\n/g, ' ');
+    banner.innerHTML = `
+      <span style="font-size:1.2rem;flex-shrink:0">📋</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.85rem;font-weight:700;color:#5b21b6">ExploreAI findings ready to import</div>
+        <div style="font-size:0.78rem;color:#7c3aed;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(preview)}…</div>
+      </div>
+      <button onclick="loadFromExploreAI();this.closest('#exploreai-banner').remove()" style="
+        padding:8px 18px;background:#7c3aed;color:white;border:none;border-radius:7px;
+        font-size:0.85rem;font-weight:700;cursor:pointer;flex-shrink:0;
+      ">Load Findings →</button>
+      <button onclick="this.closest('#exploreai-banner').remove()" style="
+        background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;padding:0 4px;
+      ">✕</button>
+    `;
+    // Insert at the top of .main, before the input panel
+    const main = document.querySelector('.main');
+    main.insertBefore(banner, main.firstChild);
+  }
+</script>
+</body>
+</html>
