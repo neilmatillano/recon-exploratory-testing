@@ -554,6 +554,119 @@
     }
 
     #summary-card.visible { display: block; }
+
+    /* ── Memory button ── */
+    .btn-memory {
+      position: relative; padding: 6px 12px; border: 1px solid #334155;
+      color: #94a3b8; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; background: transparent; transition: all 0.15s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .btn-memory:hover { background: #1e293b; color: #f1f5f9; border-color: #475569; }
+    .memory-count {
+      background: #7c3aed; color: white; font-size: 0.65rem; font-weight: 800;
+      padding: 1px 5px; border-radius: 99px; min-width: 16px; text-align: center;
+    }
+
+    /* ── Memory panel overlay + drawer ── */
+    .memory-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 90; display: none;
+    }
+    .memory-overlay.open { display: block; }
+
+    .memory-panel {
+      position: fixed; top: 56px; right: 0; bottom: 0; width: 380px;
+      background: white; border-left: 1px solid var(--border);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+      display: flex; flex-direction: column; z-index: 91;
+      transform: translateX(100%); transition: transform 0.25s ease;
+    }
+    .memory-panel.open { transform: translateX(0); }
+
+    .mp-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .mp-title { font-size: 0.95rem; font-weight: 700; }
+    .mp-close { background: none; border: none; font-size: 1.2rem; color: #64748b; cursor: pointer; padding: 2px 6px; }
+    .mp-close:hover { color: #0f172a; }
+
+    .mp-stats {
+      display: flex; gap: 6px; padding: 10px 16px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+    }
+    .mp-stat-chip { font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: #f1f5f9; color: #64748b; }
+
+    .mp-filters { display: flex; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .mp-filter-btn {
+      padding: 4px 10px; border-radius: 99px; border: 1.5px solid var(--border);
+      background: white; font-size: 0.75rem; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.12s;
+    }
+    .mp-filter-btn.active { background: #0f172a; color: white; border-color: #0f172a; }
+
+    .mp-search { padding: 8px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .mp-search input {
+      width: 100%; padding: 7px 10px; border: 1.5px solid var(--border);
+      border-radius: 7px; font-size: 0.82rem; outline: none;
+    }
+    .mp-search input:focus { border-color: var(--accent); }
+
+    .mp-list { flex: 1; overflow-y: auto; padding: 8px; }
+
+    .mp-entry {
+      border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+      margin-bottom: 6px; transition: background 0.12s; position: relative;
+    }
+    .mp-entry:hover { background: #f8fafc; }
+    .mp-entry-hdr { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .mp-entry-title { font-size: 0.83rem; font-weight: 600; color: #0f172a; margin-bottom: 3px; }
+    .mp-entry-summary {
+      font-size: 0.77rem; color: #64748b; line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .mp-entry-date { font-size: 0.7rem; color: #94a3b8; margin-left: auto; }
+    .mp-entry-actions {
+      display: flex; gap: 6px; margin-top: 8px; padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .mp-btn-load {
+      padding: 4px 12px; background: var(--accent); color: white;
+      border: none; border-radius: 5px; font-size: 0.75rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .mp-btn-load:hover { background: var(--accent-h); }
+    .mp-btn-view {
+      padding: 4px 12px; background: transparent; color: #64748b;
+      border: 1.5px solid var(--border); border-radius: 5px; font-size: 0.75rem;
+      font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .mp-btn-view:hover { border-color: var(--accent); color: var(--accent); }
+    .mp-btn-delete {
+      margin-left: auto; padding: 4px 8px; background: transparent; color: #94a3b8;
+      border: none; border-radius: 5px; font-size: 0.8rem; cursor: pointer;
+    }
+    .mp-btn-delete:hover { color: #dc2626; background: #fef2f2; }
+
+    .mp-empty { text-align: center; padding: 32px 16px; color: #64748b; font-size: 0.85rem; }
+
+    .mem-type-tag {
+      font-size: 0.65rem; font-weight: 700; padding: 1px 6px;
+      border-radius: 99px; display: inline-block;
+    }
+    .mem-type-exploration { background: #dbeafe; color: #1e40af; }
+    .mem-type-test_plan   { background: #dcfce7; color: #166534; }
+    .mem-type-test_suite  { background: #ede9fe; color: #5b21b6; }
+
+    /* lightbox for full-content view */
+    .tw-lightbox {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 200; display: flex; align-items: flex-start;
+      justify-content: center; padding: 40px 20px; overflow-y: auto;
+    }
+    .tw-lightbox-inner {
+      background: white; border-radius: 12px; padding: 24px;
+      max-width: 700px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
   </style>
 </head>
 <body>
@@ -565,9 +678,29 @@
     <span class="brand-tag">Test Case Generator</span>
   </div>
   <div class="header-actions">
+    <button class="btn-memory" onclick="openMemoryPanel()">🧠 <span class="memory-count" id="tw-memory-count">0</span></button>
     <a href="/testing-agent.html" class="btn-link">← ExploreAI</a>
   </div>
 </header>
+
+<div class="memory-overlay" id="tw-memory-overlay" onclick="closeMemoryPanel()"></div>
+<div class="memory-panel" id="tw-memory-panel">
+  <div class="mp-header">
+    <span class="mp-title">🧠 Memory</span>
+    <button class="mp-close" onclick="closeMemoryPanel()">✕</button>
+  </div>
+  <div class="mp-stats" id="tw-mp-stats"></div>
+  <div class="mp-filters">
+    <button class="mp-filter-btn active" data-type="" onclick="setMemFilter(this)">All</button>
+    <button class="mp-filter-btn" data-type="exploration" onclick="setMemFilter(this)">Explorations</button>
+    <button class="mp-filter-btn" data-type="test_plan" onclick="setMemFilter(this)">Test Plans</button>
+    <button class="mp-filter-btn" data-type="test_suite" onclick="setMemFilter(this)">Test Suites</button>
+  </div>
+  <div class="mp-search">
+    <input id="tw-mp-search" placeholder="Search memories…" oninput="renderTWMemoryList()" />
+  </div>
+  <div class="mp-list" id="tw-mp-list"></div>
+</div>
 
 <div class="main">
 
@@ -1118,6 +1251,137 @@
     const main = document.querySelector('.main');
     main.insertBefore(banner, main.firstChild);
   }
+
+  // ── Memory panel ──────────────────────────────────────────────────────────
+
+  let _twMemories = [];
+  let _twMemFilter = '';
+
+  async function loadTWMemoryStats() {
+    try {
+      const stats = await fetch('/api/memory/stats').then(r => r.json());
+      document.getElementById('tw-memory-count').textContent = stats.total;
+    } catch {}
+  }
+
+  async function openMemoryPanel() {
+    try {
+      _twMemories = await fetch('/api/memory').then(r => r.json());
+    } catch { _twMemories = []; }
+    renderTWMemoryStats();
+    renderTWMemoryList();
+    document.getElementById('tw-memory-panel').classList.add('open');
+    document.getElementById('tw-memory-overlay').classList.add('open');
+    document.getElementById('tw-mp-search').focus();
+  }
+
+  function closeMemoryPanel() {
+    document.getElementById('tw-memory-panel').classList.remove('open');
+    document.getElementById('tw-memory-overlay').classList.remove('open');
+  }
+
+  function setMemFilter(btn) {
+    document.querySelectorAll('#tw-memory-panel .mp-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _twMemFilter = btn.dataset.type;
+    renderTWMemoryList();
+  }
+
+  function renderTWMemoryStats() {
+    const counts = { exploration: 0, test_plan: 0, test_suite: 0 };
+    _twMemories.forEach(m => { if (counts[m.type] !== undefined) counts[m.type]++; });
+    document.getElementById('tw-mp-stats').innerHTML = `
+      <span class="mp-stat-chip">🔍 ${counts.exploration} Explorations</span>
+      <span class="mp-stat-chip">📋 ${counts.test_plan} Plans</span>
+      <span class="mp-stat-chip">🧪 ${counts.test_suite} Suites</span>`;
+  }
+
+  function renderTWMemoryList() {
+    const q = (document.getElementById('tw-mp-search').value ?? '').toLowerCase();
+    const list = document.getElementById('tw-mp-list');
+    const shown = _twMemories.filter(m =>
+      (!_twMemFilter || m.type === _twMemFilter) &&
+      (!q || `${m.title} ${m.summary} ${(m.keywords || []).join(' ')}`.toLowerCase().includes(q))
+    );
+
+    if (!shown.length) {
+      list.innerHTML = `<div class="mp-empty">${_twMemories.length ? 'No matches.' : 'No memories saved yet.'}</div>`;
+      return;
+    }
+
+    list.innerHTML = shown.map(m => {
+      const canLoad = m.type === 'exploration' || m.type === 'test_plan';
+      return `
+        <div class="mp-entry">
+          <div class="mp-entry-hdr">
+            <span class="mem-type-tag mem-type-${m.type}">${twTypeLabel(m.type)}</span>
+            <span class="mp-entry-date">${relDate(m.timestamp)}</span>
+          </div>
+          <div class="mp-entry-title">${escHtml(m.title)}</div>
+          <div class="mp-entry-summary">${escHtml(m.summary)}</div>
+          <div class="mp-entry-actions">
+            ${canLoad ? `<button class="mp-btn-load" onclick="loadMemoryIntoFindings('${m.id}')">Load into Findings</button>` : ''}
+            <button class="mp-btn-view" onclick="viewTWMemory('${m.id}')">View</button>
+            <button class="mp-btn-delete" onclick="deleteTWMemory('${m.id}')" title="Delete">🗑</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function loadMemoryIntoFindings(id) {
+    const m = await fetch(`/api/memory/${id}`).then(r => r.json()).catch(() => null);
+    if (!m) return;
+    document.getElementById('findings-input').value = m.content;
+    closeMemoryPanel();
+    setStatus(`Loaded "${m.title}" into findings.`);
+    // Trigger memory search so related sessions appear
+    setTimeout(searchMemoryForFindings, 300);
+  }
+
+  async function viewTWMemory(id) {
+    const m = await fetch(`/api/memory/${id}`).then(r => r.json()).catch(() => null);
+    if (!m) return;
+
+    const lb = document.createElement('div');
+    lb.className = 'tw-lightbox';
+    lb.innerHTML = `
+      <div class="tw-lightbox-inner">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <span class="mem-type-tag mem-type-${m.type}">${twTypeLabel(m.type)}</span>
+          <button onclick="this.closest('.tw-lightbox').remove()"
+            style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b">✕</button>
+        </div>
+        <h2 style="font-size:1.05rem;margin-bottom:6px;color:#0f172a">${escHtml(m.title)}</h2>
+        <p style="font-size:0.82rem;color:#64748b;margin-bottom:14px;line-height:1.5">${escHtml(m.summary)}</p>
+        <pre style="white-space:pre-wrap;font-size:0.79rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;max-height:420px;overflow-y:auto;line-height:1.5">${escHtml(m.content)}</pre>
+        <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+          ${(m.type === 'exploration' || m.type === 'test_plan') ? `
+            <button onclick="loadMemoryIntoFindings('${m.id}');this.closest('.tw-lightbox').remove()"
+              style="padding:7px 18px;background:#7c3aed;color:white;border:none;border-radius:7px;font-size:0.85rem;font-weight:700;cursor:pointer;">
+              Load into Findings
+            </button>` : ''}
+          <span style="font-size:0.72rem;color:#94a3b8;margin-left:auto">Saved ${new Date(m.timestamp).toLocaleString()}</span>
+        </div>
+      </div>`;
+    lb.addEventListener('click', e => { if (e.target === lb) lb.remove(); });
+    document.body.appendChild(lb);
+  }
+
+  async function deleteTWMemory(id) {
+    if (!confirm('Delete this memory entry?')) return;
+    await fetch(`/api/memory/${id}`, { method: 'DELETE' });
+    _twMemories = _twMemories.filter(m => m.id !== id);
+    renderTWMemoryStats();
+    renderTWMemoryList();
+    loadTWMemoryStats();
+  }
+
+  function twTypeLabel(t) {
+    return { exploration: 'Exploration', test_plan: 'Test Plan', test_suite: 'Test Suite' }[t] ?? t;
+  }
+
+  // Load badge count on boot
+  loadTWMemoryStats();
 </script>
 </body>
 </html>
