@@ -805,11 +805,17 @@
   function loadFromExploreAI() {
     const plan = localStorage.getItem('exploreai_plan');
     if (!plan) {
-      setStatus('No plan found. Go to ExploreAI and click "Send to TestWriter" after a plan is generated.');
+      setStatus('No plan found. Complete the discovery phase in ExploreAI first, then click "Send to TestWriter".');
+      return;
+    }
+    if (!looksLikePlan(plan)) {
+      localStorage.removeItem('exploreai_plan');
+      setStatus('The stored ExploreAI data looks like a greeting, not a plan. Complete the full discovery session in ExploreAI first.');
       return;
     }
     document.getElementById('findings-input').value = plan;
     setStatus('Loaded plan from ExploreAI.');
+    setTimeout(searchMemoryForFindings, 300);
   }
 
   // ── Generate ───────────────────────────────────────────────────────────
@@ -871,10 +877,13 @@
         }
       }
     } catch (err) {
-      hideProgress();
       setStatus('Error: ' + err.message);
     } finally {
+      hideProgress();         // always dismiss the spinner
       setGenerating(false);
+      if (!allTestCases.length) {
+        setStatus('No test cases generated. Make sure the findings contain a testing plan or exploration results.');
+      }
     }
   }
 
@@ -1203,11 +1212,19 @@
     return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
+  // A "real" plan has ## markdown sections; a greeting/intro does not.
+  function looksLikePlan(text) {
+    return text.includes('##') && text.length > 300;
+  }
+
   // On load: auto-detect ExploreAI data and show a banner if present
   window.addEventListener('DOMContentLoaded', () => {
     const plan = localStorage.getItem('exploreai_plan');
-    if (plan) {
+    if (plan && looksLikePlan(plan)) {
       showExploreAIBanner(plan);
+    } else if (plan && !looksLikePlan(plan)) {
+      // Stale / greeting content — silently discard it
+      localStorage.removeItem('exploreai_plan');
     }
     // Also honour the legacy ?autoload=1 param
     if (location.search.includes('autoload=1')) {
