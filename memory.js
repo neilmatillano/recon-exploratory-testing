@@ -97,7 +97,7 @@ export async function saveMemory({ type, content, metadata = {} }) {
     title:     meta.title,
     summary:   meta.summary,
     keywords:  meta.keywords,
-    content:   content.slice(0, 12000),
+    content:   content.slice(0, 50000),
     metadata:  { appName: meta.appName, domain: meta.domain, ...metadata },
   };
   const store = load();

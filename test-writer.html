@@ -1165,12 +1165,12 @@
       .map(cb => cb.value);
   }
 
-  // Auto-save after generation completes
+  // Auto-save after generation completes — stores full JSON for round-trip reload
   async function autoSaveTestSuite(testCasesPayload) {
-    const findings = document.getElementById('findings-input').value.trim();
-    const count    = (testCasesPayload.test_cases || []).length;
+    const count      = (testCasesPayload.test_cases || []).length;
     const categories = [...new Set((testCasesPayload.test_cases || []).map(tc => tc.category))];
-    const content  = `Test Suite (${count} cases)\nCategories: ${categories.join(', ')}\n\nFindings summary:\n${findings.slice(0, 1500)}\n\nSummary:\n${testCasesPayload.summary || ''}`;
+    // Store the full structured payload so it can be reloaded exactly
+    const content    = JSON.stringify(testCasesPayload);
     try {
       await fetch('/api/memory/save', {
         method: 'POST',
@@ -1181,6 +1181,7 @@
           metadata: { testCount: count, categories },
         }),
       });
+      loadTWMemoryStats();
     } catch {}
   }
 
@@ -1310,7 +1311,8 @@
     }
 
     list.innerHTML = shown.map(m => {
-      const canLoad = m.type === 'exploration' || m.type === 'test_plan';
+      const canLoad    = m.type === 'exploration' || m.type === 'test_plan';
+      const canRestore = m.type === 'test_suite';
       return `
         <div class="mp-entry">
           <div class="mp-entry-hdr">
@@ -1320,12 +1322,36 @@
           <div class="mp-entry-title">${escHtml(m.title)}</div>
           <div class="mp-entry-summary">${escHtml(m.summary)}</div>
           <div class="mp-entry-actions">
-            ${canLoad ? `<button class="mp-btn-load" onclick="loadMemoryIntoFindings('${m.id}')">Load into Findings</button>` : ''}
+            ${canLoad    ? `<button class="mp-btn-load" onclick="loadMemoryIntoFindings('${m.id}')">Load into Findings</button>` : ''}
+            ${canRestore ? `<button class="mp-btn-load" onclick="restoreTestCasesFromMemory('${m.id}')">Load Test Cases</button>` : ''}
             <button class="mp-btn-view" onclick="viewTWMemory('${m.id}')">View</button>
             <button class="mp-btn-delete" onclick="deleteTWMemory('${m.id}')" title="Delete">🗑</button>
           </div>
         </div>`;
     }).join('');
+  }
+
+  async function restoreTestCasesFromMemory(id) {
+    const m = await fetch(`/api/memory/${id}`).then(r => r.json()).catch(() => null);
+    if (!m) return;
+
+    let payload;
+    try {
+      payload = JSON.parse(m.content);
+    } catch {
+      alert('This test suite was saved in an older format and cannot be restored. Re-generate to save a restorable version.');
+      return;
+    }
+
+    if (!payload.test_cases?.length) {
+      alert('No test cases found in this memory entry.');
+      return;
+    }
+
+    closeMemoryPanel();
+    clearResults();
+    renderResults(payload);
+    setStatus(`Restored ${payload.test_cases.length} test cases from memory: "${m.title}"`);
   }
 
   async function loadMemoryIntoFindings(id) {
@@ -1354,11 +1380,16 @@
         <h2 style="font-size:1.05rem;margin-bottom:6px;color:#0f172a">${escHtml(m.title)}</h2>
         <p style="font-size:0.82rem;color:#64748b;margin-bottom:14px;line-height:1.5">${escHtml(m.summary)}</p>
         <pre style="white-space:pre-wrap;font-size:0.79rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;max-height:420px;overflow-y:auto;line-height:1.5">${escHtml(m.content)}</pre>
-        <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+        <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap;">
           ${(m.type === 'exploration' || m.type === 'test_plan') ? `
             <button onclick="loadMemoryIntoFindings('${m.id}');this.closest('.tw-lightbox').remove()"
               style="padding:7px 18px;background:#7c3aed;color:white;border:none;border-radius:7px;font-size:0.85rem;font-weight:700;cursor:pointer;">
               Load into Findings
+            </button>` : ''}
+          ${m.type === 'test_suite' ? `
+            <button onclick="restoreTestCasesFromMemory('${m.id}');this.closest('.tw-lightbox').remove()"
+              style="padding:7px 18px;background:#7c3aed;color:white;border:none;border-radius:7px;font-size:0.85rem;font-weight:700;cursor:pointer;">
+              Load Test Cases
             </button>` : ''}
           <span style="font-size:0.72rem;color:#94a3b8;margin-left:auto">Saved ${new Date(m.timestamp).toLocaleString()}</span>
         </div>
