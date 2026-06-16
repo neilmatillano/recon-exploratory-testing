@@ -660,7 +660,7 @@ app.post('/api/write-tests', async (req, res) => {
     // Stream input_json_delta events so the client can show a live counter
     const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8096,
+      max_tokens: 16000,
       system: [{ type: 'text', text: TEST_WRITER_SYSTEM, cache_control: { type: 'ephemeral' } }],
       tools: TEST_WRITER_TOOLS,
       tool_choice: { type: 'any' }, // always call create_test_cases
@@ -670,6 +670,8 @@ app.post('/api/write-tests', async (req, res) => {
           content: buildWriterPrompt(findings, memoryIds),
         },
       ],
+    }, {
+      headers: { 'anthropic-beta': 'output-128k-2025-02-19' },
     });
 
     // Count TC-### matches as JSON streams to show live progress
@@ -693,6 +695,151 @@ app.post('/api/write-tests', async (req, res) => {
       send({ test_cases: toolUse.input });
     } else {
       send({ error: 'Agent did not return structured test cases. Please try again.' });
+    }
+
+    res.write('data: [DONE]\n\n');
+    res.end();
+  } catch (err) {
+    send({ error: err.message });
+    res.end();
+  }
+});
+
+// ── PlaywrightCoder agent ──────────────────────────────────────────────────
+
+const PLAYWRIGHT_CODER_SYSTEM = `You are PlaywrightCoder, an expert Playwright test automation engineer specialising in TypeScript.
+
+Given a set of manual test cases, generate production-ready Playwright test code following best practices.
+
+## OUTPUT FILE STRUCTURE
+
+Always generate ALL of these files:
+1. **playwright.config.ts** — config with baseURL, timeouts, reporter, and screenshot-on-failure
+2. **fixtures/base.ts** — custom test fixtures extending Playwright's base; one fixture per Page Object
+3. **pages/<FeaturePage>.ts** — one Page Object Model file per feature area (group related pages)
+4. **tests/<category>.spec.ts** — test files grouped by category (one file per unique category)
+
+## PAGE OBJECT MODEL RULES
+- Constructor takes \`readonly page: Page\`
+- Declare all locators as \`readonly\` class fields using \`page.locator()\`
+- Locator priority: data-testid → aria-label/role → visible text → placeholder → CSS → XPath
+- Add async action methods that encapsulate multi-step interactions (e.g. \`login(email, password)\`)
+- Add \`async goto()\` for navigation to the page's primary URL
+- Never add assertions inside POMs — keep them in tests
+
+## TEST RULES
+- Each test must be fully independent — no shared mutable state
+- Use \`test.describe('Category Name', () => { ... })\` to group tests from the same category
+- Title format: \`'TC-XXX: Exact title from test case'\`
+- Always use fixtures (never \`new PageObject(page)\` inside tests)
+- Use \`test.beforeEach\` for navigation when all tests in a describe start on the same page
+- Map each expected_result to a specific \`expect()\` assertion
+- For Security tests requiring a proxy tool: add \`test.skip(true, 'Manual step: requires Burp Suite or similar')\` with a comment block explaining the manual steps
+- For Performance tests: use \`page.waitForLoadState('networkidle')\` and check timing via \`page.evaluate(() => performance.timing)\`
+- For Accessibility tests: add an import comment for @axe-core/playwright; use \`expect(locator)\` checks as the implementation
+
+## TYPESCRIPT STYLE
+- Use TypeScript with strict mode implied
+- Import types from '@playwright/test'
+- No \`any\` types
+- Prefer \`async/await\` over promise chains
+
+Generate complete, immediately runnable code. Call generate_playwright_code with all files.`;
+
+const PLAYWRIGHT_CODER_TOOLS = [
+  {
+    name: 'generate_playwright_code',
+    description: 'Output all generated Playwright TypeScript files.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+          description: 'Brief summary: number of files, page objects, and tests generated.',
+        },
+        install_note: {
+          type: 'string',
+          description: 'npm install command needed to run the tests (e.g. playwright, axe-core if used).',
+        },
+        files: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              path:    { type: 'string', description: 'Relative path e.g. playwright.config.ts or pages/LoginPage.ts' },
+              content: { type: 'string', description: 'Full file content, ready to save and run' },
+            },
+            required: ['path', 'content'],
+          },
+        },
+      },
+      required: ['summary', 'files'],
+    },
+  },
+];
+
+app.post('/api/generate-playwright', async (req, res) => {
+  const { testCases, appUrl } = req.body;
+  if (!testCases || !Array.isArray(testCases) || testCases.length === 0) {
+    return res.status(400).json({ error: 'testCases array is required' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  try {
+    const casesText = testCases.map(tc => [
+      `### ${tc.id}: ${tc.title}`,
+      `Category: ${tc.category} | Priority: ${tc.priority} | Type: ${tc.type}`,
+      `Description: ${tc.description}`,
+      tc.preconditions?.length ? `Preconditions:\n${tc.preconditions.map((p, i) => `  ${i + 1}. ${p}`).join('\n')}` : '',
+      `Steps:\n${tc.steps.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}`,
+      `Expected Results:\n${tc.expected_results.map(r => `  - ${r}`).join('\n')}`,
+    ].filter(Boolean).join('\n')).join('\n\n---\n\n');
+
+    const prompt = `Generate complete Playwright TypeScript test code for the ${testCases.length} test case(s) below.
+
+Application base URL: ${appUrl || 'http://localhost:3000'}
+
+## TEST CASES
+
+${casesText}`;
+
+    const stream = client.messages.stream({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 16000,
+      system: [{ type: 'text', text: PLAYWRIGHT_CODER_SYSTEM, cache_control: { type: 'ephemeral' } }],
+      tools: PLAYWRIGHT_CODER_TOOLS,
+      tool_choice: { type: 'any' },
+      messages: [{ role: 'user', content: prompt }],
+    }, {
+      headers: { 'anthropic-beta': 'output-128k-2025-02-19' },
+    });
+
+    let pwFileCount = 0;
+    let pwJsonBuf = '';
+    stream.on('streamEvent', (event) => {
+      if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
+        pwJsonBuf += event.delta.partial_json ?? '';
+        const cnt = (pwJsonBuf.match(/"path"\s*:\s*"/g) || []).length;
+        if (cnt > pwFileCount) {
+          pwFileCount = cnt;
+          send({ progress: { files: pwFileCount } });
+        }
+      }
+    });
+
+    const finalMessage = await stream.finalMessage();
+    const toolUse = finalMessage.content.find(b => b.type === 'tool_use' && b.name === 'generate_playwright_code');
+
+    if (toolUse) {
+      send({ playwright_code: toolUse.input });
+    } else {
+      send({ error: 'Agent did not return code. Please try again.' });
     }
 
     res.write('data: [DONE]\n\n');

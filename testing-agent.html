@@ -939,6 +939,7 @@
   let conversationHistory = [];
   let isStreaming = false;
   let messageCount = 0;
+  let planContent = ''; // captures the structured plan, not follow-up messages
 
   // ── Boot ──────────────────────────────────────────────────────────────
   window.addEventListener('DOMContentLoaded', startSession);
@@ -946,6 +947,7 @@
   async function startSession() {
     conversationHistory = [];
     messageCount = 0;
+    planContent = '';
     messagesEl.innerHTML = '';
     suggestEl.innerHTML = '';
     setPhaseBadge('discovery');
@@ -964,12 +966,16 @@
   }
 
   function sendToTestWriter() {
-    const planParts = conversationHistory
-      .filter(m => m.role === 'assistant' && typeof m.content === 'string')
-      .map(m => m.content);
-
-    if (planParts.length) {
-      localStorage.setItem('exploreai_plan', planParts.join('\n\n---\n\n'));
+    // Prefer the captured plan (structured planning-phase response).
+    // Fall back to the longest assistant message if plan wasn't explicitly captured.
+    let content = planContent;
+    if (!content) {
+      const msgs = conversationHistory
+        .filter(m => m.role === 'assistant' && typeof m.content === 'string');
+      content = msgs.reduce((best, m) => m.content.length > best.length ? m.content : best, '');
+    }
+    if (content) {
+      localStorage.setItem('exploreai_plan', content);
     }
 
     // Use location.href — never blocked by popup blockers
@@ -1106,6 +1112,10 @@
         ]);
         document.getElementById('btn-testwriter').classList.add('ready');
         document.getElementById('btn-save-memory').classList.add('visible');
+        // Capture structured plan content (longer responses = actual plan, not conversational follow-ups)
+        if (fullText.length > 600) {
+          planContent = fullText;
+        }
       }
 
     } catch (err) {

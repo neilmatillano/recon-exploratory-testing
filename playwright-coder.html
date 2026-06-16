@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlaywrightCoder — Test Code Generator</title>
+  <!-- Prism.js for syntax highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js" defer></script>
+  <!-- JSZip for bulk download -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #263347;
+      --border: #334155;
+      --border-light: #475569;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #7c3aed;
+      --accent-h: #6d28d9;
+      --accent-light: #a78bfa;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --header-bg: #0a0f1e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .header-brand { display: flex; align-items: center; gap: 10px; }
+
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .brand-name  { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .brand-tag   { font-size: 0.7rem; background: rgba(255,255,255,0.08); color: var(--muted);
+                   padding: 2px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+
+    .btn-link {
+      padding: 6px 14px; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      background: transparent; text-decoration: none; transition: all 0.15s;
+    }
+    .btn-link:hover { background: var(--surface); color: var(--text); border-color: var(--border-light); }
+
+    /* ── Layout ── */
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      height: calc(100vh - 56px);
+    }
+
+    /* ── Left panel ── */
+    .left-panel {
+      width: 340px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .panel-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .url-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: "SF Mono", Consolas, monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .url-input:focus { border-color: var(--accent-light); }
+    .url-input::placeholder { color: var(--muted); }
+
+    /* ── Test case list ── */
+    .case-list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .select-all-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-sel {
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-sel:hover { border-color: var(--accent-light); color: var(--accent-light); }
+
+    .selected-count {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .selected-count strong { color: var(--accent-light); }
+
+    .case-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 16px;
+    }
+
+    .case-list::-webkit-scrollbar { width: 4px; }
+    .case-list::-webkit-scrollbar-track { background: transparent; }
+    .case-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .category-group { margin-bottom: 14px; }
+
+    .category-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      padding: 4px 0;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .category-check-all {
+      font-size: 0.65rem;
+      cursor: pointer;
+      color: var(--accent-light);
+      opacity: 0.7;
+    }
+    .category-check-all:hover { opacity: 1; }
+
+    .case-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 4px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .case-item:hover { background: var(--surface2); }
+
+    .case-item input[type=checkbox] {
+      margin-top: 2px;
+      flex-shrink: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .case-item-body { flex: 1; min-width: 0; }
+
+    .case-item-id {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent-light);
+      font-family: "SF Mono", monospace;
+    }
+
+    .case-item-title {
+      font-size: 0.8rem;
+      color: var(--text);
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pri-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+    .pri-dot.high   { background: #ef4444; }
+    .pri-dot.medium { background: #eab308; }
+    .pri-dot.low    { background: #22c55e; }
+
+    /* ── Generate button ── */
+    .generate-section {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .btn-generate {
+      width: 100%;
+      padding: 11px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-generate:hover:not(:disabled) { background: var(--accent-h); }
+    .btn-generate:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+
+    .gen-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .btn-generate.loading .gen-spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Right panel ── */
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      gap: 12px;
+      padding: 40px;
+    }
+
+    .empty-icon { font-size: 3rem; opacity: 0.4; }
+    .empty-title { font-size: 1rem; font-weight: 600; color: var(--muted); }
+    .empty-sub { font-size: 0.85rem; text-align: center; max-width: 300px; line-height: 1.5; }
+
+    /* ── Progress ── */
+    .progress-panel {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--muted);
+    }
+    .progress-panel.visible { display: flex; }
+
+    .progress-spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .progress-label { font-size: 0.9rem; }
+    .progress-files { font-size: 0.8rem; color: var(--accent-light); font-weight: 600; }
+
+    /* ── Output panel ── */
+    .output-panel {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .output-panel.visible { display: flex; }
+
+    /* Summary bar */
+    .summary-bar {
+      padding: 10px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .summary-text {
+      flex: 1;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .summary-text strong { color: var(--accent-light); }
+
+    .install-note {
+      font-size: 0.78rem;
+      color: #86efac;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 5px;
+      padding: 3px 10px;
+      font-family: "SF Mono", monospace;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .install-note:hover { background: rgba(34, 197, 94, 0.2); }
+
+    .btn-download-zip {
+      padding: 6px 16px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-download-zip:hover { background: var(--accent-h); }
+
+    /* File tabs */
+    .file-tabs {
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .file-tabs::-webkit-scrollbar { height: 3px; }
+    .file-tabs::-webkit-scrollbar-track { background: transparent; }
+    .file-tabs::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .file-tab {
+      padding: 8px 16px;
+      font-size: 0.78rem;
+      font-family: "SF Mono", Consolas, monospace;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: all 0.12s;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .file-tab:hover { color: var(--text); background: var(--surface2); }
+    .file-tab.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+
+    .file-tab-icon { font-size: 0.8rem; opacity: 0.7; }
+
+    /* Code view */
+    .code-view {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-header {
+      padding: 8px 20px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .code-path {
+      font-size: 0.8rem;
+      font-family: "SF Mono", monospace;
+      color: var(--muted);
+    }
+    .code-path span { color: var(--text); }
+
+    .btn-copy {
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-copy:hover { border-color: var(--accent-light); color: var(--accent-light); }
+    .btn-copy.copied { color: var(--green); border-color: var(--green); }
+
+    .code-scroll {
+      flex: 1;
+      overflow: auto;
+    }
+
+    .code-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .code-scroll::-webkit-scrollbar-track { background: transparent; }
+    .code-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .code-scroll pre {
+      margin: 0 !important;
+      border-radius: 0 !important;
+      background: #1a1a2e !important;
+      min-height: 100%;
+      font-size: 0.82rem !important;
+      line-height: 1.6 !important;
+    }
+
+    .code-scroll pre code { font-size: inherit !important; }
+
+    /* No cases state */
+    .no-cases-banner {
+      display: none;
+      background: #1c1917;
+      border: 1px solid #44403c;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 12px 16px;
+      font-size: 0.82rem;
+      color: #a8a29e;
+      line-height: 1.5;
+    }
+    .no-cases-banner.visible { display: block; }
+    .no-cases-banner a { color: var(--accent-light); text-decoration: none; }
+    .no-cases-banner a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <div class="brand-icon">🎭</div>
+    <span class="brand-name">PlaywrightCoder</span>
+    <span class="brand-tag">Test Code Generator</span>
+  </div>
+  <div class="header-actions">
+    <a href="/test-writer.html" class="btn-link">← TestWriter</a>
+    <a href="/testing-agent.html" class="btn-link">ExploreAI</a>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- Left panel -->
+  <div class="left-panel">
+
+    <!-- App URL -->
+    <div class="panel-section">
+      <div class="panel-section-title">Application URL</div>
+      <input
+        id="app-url"
+        class="url-input"
+        type="url"
+        placeholder="https://your-app.com"
+      />
+    </div>
+
+    <!-- No-cases banner -->
+    <div class="no-cases-banner" id="no-cases-banner">
+      No test cases loaded. Go to <a href="/test-writer.html">TestWriter</a> to generate test cases first, then click <strong>🎭 Playwright</strong>.
+    </div>
+
+    <!-- Test case selector -->
+    <div class="panel-section" id="selector-header" style="display:none">
+      <div class="case-list-header">
+        <div class="panel-section-title" style="margin-bottom:0">Test Cases</div>
+        <div class="select-all-row">
+          <button class="btn-sel" onclick="selectAll()">All</button>
+          <button class="btn-sel" onclick="selectNone()">None</button>
+        </div>
+      </div>
+      <div class="selected-count" id="selected-count"></div>
+    </div>
+
+    <div class="case-list" id="case-list"></div>
+
+    <!-- Generate -->
+    <div class="generate-section">
+      <button class="btn-generate" id="gen-btn" onclick="generate()">
+        <div class="gen-spinner"></div>
+        <span class="gen-label">Generate Playwright Code</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Right panel -->
+  <div class="right-panel" id="right-panel">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">🎭</div>
+      <div class="empty-title">Ready to generate</div>
+      <div class="empty-sub">Select test cases on the left, enter your app URL, then click Generate.</div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-panel" id="progress-panel">
+      <div class="progress-spinner"></div>
+      <div class="progress-label" id="progress-label">Analysing test cases…</div>
+      <div class="progress-files" id="progress-files"></div>
+    </div>
+
+    <!-- Output -->
+    <div class="output-panel" id="output-panel">
+      <div class="summary-bar">
+        <div class="summary-text" id="summary-text"></div>
+        <span class="install-note" id="install-note" onclick="copyInstall(this)" title="Click to copy"></span>
+        <button class="btn-download-zip" onclick="downloadZip()">⬇ Download ZIP</button>
+      </div>
+      <div class="file-tabs" id="file-tabs"></div>
+      <div class="code-view">
+        <div class="code-header">
+          <div class="code-path" id="code-path"></div>
+          <button class="btn-copy" id="copy-btn" onclick="copyCurrentFile()">Copy</button>
+        </div>
+        <div class="code-scroll">
+          <pre id="code-pre"><code id="code-content" class="language-typescript"></code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let allCases = [];     // all loaded test cases
+  let generatedFiles = [];   // [{ path, content }]
+  let activeFileIdx = 0;
+
+  // ── Load test cases from localStorage ────────────────────────────────────
+  function loadCases() {
+    const raw = localStorage.getItem('testwriter_cases');
+    if (!raw) {
+      document.getElementById('no-cases-banner').classList.add('visible');
+      document.getElementById('gen-btn').disabled = true;
+      return;
+    }
+
+    try {
+      const data = JSON.parse(raw);
+      allCases = data.test_cases || data || [];
+    } catch {
+      document.getElementById('no-cases-banner').classList.add('visible');
+      return;
+    }
+
+    if (!allCases.length) {
+      document.getElementById('no-cases-banner').classList.add('visible');
+      document.getElementById('gen-btn').disabled = true;
+      return;
+    }
+
+    renderCaseList();
+    document.getElementById('selector-header').style.display = 'block';
+  }
+
+  function renderCaseList() {
+    const list = document.getElementById('case-list');
+    list.innerHTML = '';
+
+    const byCategory = {};
+    allCases.forEach(tc => {
+      (byCategory[tc.category] ??= []).push(tc);
+    });
+
+    Object.entries(byCategory).forEach(([cat, cases]) => {
+      const group = document.createElement('div');
+      group.className = 'category-group';
+      group.innerHTML = `
+        <div class="category-label">
+          ${escHtml(cat)}
+          <span class="category-check-all" onclick="toggleCategory('${escHtml(cat)}', this)">select all</span>
+        </div>
+      `;
+
+      cases.forEach(tc => {
+        const item = document.createElement('label');
+        item.className = 'case-item';
+        item.dataset.category = tc.category;
+        item.innerHTML = `
+          <input type="checkbox" class="tc-checkbox" value="${escHtml(tc.id)}" checked onchange="updateCount()" />
+          <div class="pri-dot ${tc.priority.toLowerCase()}"></div>
+          <div class="case-item-body">
+            <div class="case-item-id">${escHtml(tc.id)}</div>
+            <div class="case-item-title" title="${escHtml(tc.title)}">${escHtml(tc.title)}</div>
+          </div>
+        `;
+        group.appendChild(item);
+      });
+
+      list.appendChild(group);
+    });
+
+    updateCount();
+  }
+
+  function toggleCategory(cat, el) {
+    const items = document.querySelectorAll(`.case-item[data-category="${CSS.escape(cat)}"] .tc-checkbox`);
+    const allChecked = [...items].every(cb => cb.checked);
+    items.forEach(cb => cb.checked = !allChecked);
+    el.textContent = allChecked ? 'select all' : 'deselect all';
+    updateCount();
+  }
+
+  function selectAll()  { document.querySelectorAll('.tc-checkbox').forEach(cb => cb.checked = true);  updateCount(); }
+  function selectNone() { document.querySelectorAll('.tc-checkbox').forEach(cb => cb.checked = false); updateCount(); }
+
+  function updateCount() {
+    const total    = document.querySelectorAll('.tc-checkbox').length;
+    const selected = document.querySelectorAll('.tc-checkbox:checked').length;
+    document.getElementById('selected-count').innerHTML =
+      `<strong>${selected}</strong> of ${total} selected`;
+    document.getElementById('gen-btn').disabled = selected === 0;
+  }
+
+  function getSelectedCases() {
+    const ids = new Set([...document.querySelectorAll('.tc-checkbox:checked')].map(cb => cb.value));
+    return allCases.filter(tc => ids.has(tc.id));
+  }
+
+  // ── Generate ───────────────────────────────────────────────────────────────
+  async function generate() {
+    const selected = getSelectedCases();
+    if (!selected.length) return;
+
+    const appUrl = document.getElementById('app-url').value.trim() || 'http://localhost:3000';
+
+    setGenerating(true);
+    showProgress('Analysing test cases…');
+
+    generatedFiles = [];
+
+    try {
+      const res = await fetch('/api/generate-playwright', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testCases: selected, appUrl }),
+      });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (payload === '[DONE]') break;
+
+          let ev;
+          try { ev = JSON.parse(payload); } catch { continue; }
+
+          if (ev.error) throw new Error(ev.error);
+
+          if (ev.progress) {
+            const n = ev.progress.files;
+            document.getElementById('progress-files').textContent =
+              `${n} file${n === 1 ? '' : 's'} written…`;
+            document.getElementById('progress-label').textContent = 'Generating code…';
+          }
+
+          if (ev.playwright_code) {
+            generatedFiles = ev.playwright_code.files || [];
+            renderOutput(ev.playwright_code);
+          }
+        }
+      }
+    } catch (err) {
+      hideProgress();
+      showError(err.message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  // ── Render output ──────────────────────────────────────────────────────────
+  function renderOutput({ summary, install_note, files }) {
+    hideProgress();
+
+    // Summary bar
+    const sumEl = document.getElementById('summary-text');
+    sumEl.innerHTML = summary ? escHtml(summary).replace(/(\d+ file|\d+ test|\d+ page)/gi, '<strong>$1</strong>') : '';
+
+    const instEl = document.getElementById('install-note');
+    if (install_note) {
+      instEl.textContent = install_note;
+      instEl.style.display = '';
+    } else {
+      instEl.style.display = 'none';
+    }
+
+    // Build tabs
+    const tabs = document.getElementById('file-tabs');
+    tabs.innerHTML = '';
+    files.forEach((f, i) => {
+      const tab = document.createElement('div');
+      tab.className = `file-tab${i === 0 ? ' active' : ''}`;
+      tab.dataset.idx = i;
+      tab.onclick = () => showFile(i);
+      const icon = fileIcon(f.path);
+      tab.innerHTML = `<span class="file-tab-icon">${icon}</span>${escHtml(shortPath(f.path))}`;
+      tabs.appendChild(tab);
+    });
+
+    document.getElementById('output-panel').classList.add('visible');
+    document.getElementById('empty-state').style.display = 'none';
+
+    if (files.length) showFile(0);
+  }
+
+  function showFile(idx) {
+    activeFileIdx = idx;
+    const file = generatedFiles[idx];
+    if (!file) return;
+
+    // Update tabs
+    document.querySelectorAll('.file-tab').forEach((t, i) => {
+      t.classList.toggle('active', i === idx);
+    });
+
+    // Update header
+    document.getElementById('code-path').innerHTML =
+      `<span style="color:var(--muted)">${escHtml(dirPart(file.path))}</span><span>${escHtml(basePart(file.path))}</span>`;
+
+    // Update code
+    const codeEl = document.getElementById('code-content');
+    codeEl.textContent = file.content;
+    codeEl.className = 'language-typescript';
+
+    // Re-highlight after Prism loads
+    if (window.Prism) {
+      Prism.highlightElement(codeEl);
+    } else {
+      // Prism not yet loaded (deferred), highlight after a tick
+      setTimeout(() => window.Prism && Prism.highlightElement(codeEl), 300);
+    }
+
+    // Reset copy button
+    const copyBtn = document.getElementById('copy-btn');
+    copyBtn.textContent = 'Copy';
+    copyBtn.classList.remove('copied');
+
+    // Scroll code to top
+    document.querySelector('.code-scroll').scrollTop = 0;
+  }
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+  function copyCurrentFile() {
+    const file = generatedFiles[activeFileIdx];
+    if (!file) return;
+    navigator.clipboard.writeText(file.content).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function copyInstall(el) {
+    navigator.clipboard.writeText(el.textContent).then(() => {
+      const orig = el.textContent;
+      el.textContent = '✓ Copied!';
+      setTimeout(() => { el.textContent = orig; }, 1500);
+    });
+  }
+
+  async function downloadZip() {
+    if (!generatedFiles.length) return;
+    if (typeof JSZip === 'undefined') {
+      alert('JSZip not loaded yet. Please wait a moment and try again.');
+      return;
+    }
+    const zip = new JSZip();
+    generatedFiles.forEach(f => zip.file(f.path, f.content));
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'playwright-tests.zip';
+    a.click();
+  }
+
+  // ── UI helpers ─────────────────────────────────────────────────────────────
+  function setGenerating(on) {
+    const btn = document.getElementById('gen-btn');
+    btn.disabled = on;
+    btn.classList.toggle('loading', on);
+    btn.querySelector('.gen-label').textContent = on ? 'Generating…' : 'Generate Playwright Code';
+  }
+
+  function showProgress(msg) {
+    document.getElementById('empty-state').style.display = 'none';
+    document.getElementById('output-panel').classList.remove('visible');
+    document.getElementById('progress-label').textContent = msg;
+    document.getElementById('progress-files').textContent = '';
+    document.getElementById('progress-panel').classList.add('visible');
+  }
+
+  function hideProgress() {
+    document.getElementById('progress-panel').classList.remove('visible');
+  }
+
+  function showError(msg) {
+    document.getElementById('empty-state').style.display = 'none';
+    // Re-use progress panel for error display
+    const pp = document.getElementById('progress-panel');
+    pp.classList.add('visible');
+    pp.querySelector('.progress-spinner').style.display = 'none';
+    document.getElementById('progress-label').textContent = '⚠ ' + msg;
+    document.getElementById('progress-files').textContent = '';
+  }
+
+  // ── Path helpers ───────────────────────────────────────────────────────────
+  function shortPath(p) {
+    const parts = p.split('/');
+    return parts[parts.length - 1];
+  }
+
+  function dirPart(p) {
+    const i = p.lastIndexOf('/');
+    return i >= 0 ? p.slice(0, i + 1) : '';
+  }
+
+  function basePart(p) {
+    return p.slice(p.lastIndexOf('/') + 1);
+  }
+
+  function fileIcon(p) {
+    if (p.includes('config'))  return '⚙';
+    if (p.includes('fixture')) return '🔧';
+    if (p.includes('pages/'))  return '📄';
+    if (p.includes('spec'))    return '🧪';
+    return '📄';
+  }
+
+  function escHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', loadCases);
+</script>
+</body>
+</html>

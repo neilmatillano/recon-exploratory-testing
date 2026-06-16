@@ -627,6 +627,12 @@
       <button class="btn-export" onclick="exportJson()">JSON</button>
       <button class="btn-export" onclick="exportCsv()">CSV</button>
     </div>
+    <div class="stat-divider"></div>
+    <button id="btn-playwright" onclick="sendToPlaywrightCoder()" style="
+      padding:5px 14px;background:#1e1b4b;color:#a78bfa;border:1.5px solid #4c1d95;
+      border-radius:7px;font-size:0.8rem;font-weight:700;cursor:pointer;
+      transition:all 0.15s;white-space:nowrap;
+    " title="Generate Playwright test code from these test cases">🎭 Playwright</button>
   </div>
 
   <!-- Filter bar -->
@@ -1043,6 +1049,12 @@
         }),
       });
     } catch {}
+  }
+
+  function sendToPlaywrightCoder() {
+    if (!allTestCases.length) return;
+    localStorage.setItem('testwriter_cases', JSON.stringify({ test_cases: allTestCases }));
+    window.location.href = '/playwright-coder.html';
   }
 
   function memTypeLabel(t) {
