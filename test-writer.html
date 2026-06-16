@@ -1339,19 +1339,24 @@
     try {
       payload = JSON.parse(m.content);
     } catch {
-      alert('This test suite was saved in an older format and cannot be restored. Re-generate to save a restorable version.');
+      // Old text-format save — load the summary as findings so the user can re-generate
+      closeMemoryPanel();
+      document.getElementById('findings-input').value = m.summary + (m.content ? '\n\n' + m.content : '');
+      setStatus(`"${m.title}" was saved in an older format. Its summary has been loaded into findings — click Generate to rebuild the test cases.`);
+      setTimeout(searchMemoryForFindings, 300);
       return;
     }
 
     if (!payload.test_cases?.length) {
-      alert('No test cases found in this memory entry.');
+      closeMemoryPanel();
+      setStatus(`No test cases found in "${m.title}".`);
       return;
     }
 
     closeMemoryPanel();
     clearResults();
     renderResults(payload);
-    setStatus(`Restored ${payload.test_cases.length} test cases from memory: "${m.title}"`);
+    setStatus(`Restored ${payload.test_cases.length} test cases from "${m.title}".`);
   }
 
   async function loadMemoryIntoFindings(id) {
@@ -1388,7 +1393,8 @@
             </button>` : ''}
           ${m.type === 'test_suite' ? `
             <button onclick="restoreTestCasesFromMemory('${m.id}');this.closest('.tw-lightbox').remove()"
-              style="padding:7px 18px;background:#7c3aed;color:white;border:none;border-radius:7px;font-size:0.85rem;font-weight:700;cursor:pointer;">
+              style="padding:7px 18px;background:#7c3aed;color:white;border:none;border-radius:7px;font-size:0.85rem;font-weight:700;cursor:pointer;"
+              title="Restore full test case cards, or load summary as findings if older format">
               Load Test Cases
             </button>` : ''}
           <span style="font-size:0.72rem;color:#94a3b8;margin-left:auto">Saved ${new Date(m.timestamp).toLocaleString()}</span>

@@ -966,19 +966,25 @@
   }
 
   function sendToTestWriter() {
-    // Prefer the captured plan (structured planning-phase response).
-    // Fall back to the longest assistant message if plan wasn't explicitly captured.
+    // Only use content that looks like an actual plan (has markdown ## sections).
+    // Never fall back to the intro/greeting message.
     let content = planContent;
     if (!content) {
       const msgs = conversationHistory
-        .filter(m => m.role === 'assistant' && typeof m.content === 'string');
-      content = msgs.reduce((best, m) => m.content.length > best.length ? m.content : best, '');
-    }
-    if (content) {
-      localStorage.setItem('exploreai_plan', content);
+        .filter(m => m.role === 'assistant' && typeof m.content === 'string')
+        .filter(m => m.content.includes('##') && m.content.length > 500);
+      if (msgs.length) {
+        content = msgs.reduce((best, m) => m.content.length > best.length ? m.content : best, '');
+      }
     }
 
-    // Use location.href — never blocked by popup blockers
+    if (content) {
+      localStorage.setItem('exploreai_plan', content);
+    } else {
+      // No plan yet — clear stale data so TestWriter doesn't show the wrong banner
+      localStorage.removeItem('exploreai_plan');
+    }
+
     window.location.href = '/test-writer.html';
   }
 
@@ -1367,9 +1373,15 @@
 
   async function saveCurrentSession() {
     const btn = document.getElementById('btn-save-memory');
-    const plan = conversationHistory
-      .filter(m => m.role === 'assistant' && typeof m.content === 'string')
-      .map(m => m.content).join('\n\n---\n\n');
+    // Use the captured plan; fall back to messages with ## sections only (never the intro)
+    let plan = planContent;
+    if (!plan) {
+      plan = conversationHistory
+        .filter(m => m.role === 'assistant' && typeof m.content === 'string')
+        .filter(m => m.content.includes('##') && m.content.length > 500)
+        .map(m => m.content)
+        .join('\n\n---\n\n');
+    }
     if (!plan.trim()) return;
 
     btn.disabled = true;
