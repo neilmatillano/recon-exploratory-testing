@@ -738,8 +738,18 @@ Always generate ALL of these files:
 
 ## PAGE OBJECT MODEL RULES
 - Constructor takes \`readonly page: Page\`
-- Declare all locators as \`readonly\` class fields using \`page.locator()\`
-- Locator priority: data-testid → aria-label/role → visible text → placeholder → CSS → XPath
+- Declare all locators as \`readonly\` class fields
+- **Locator strategy — strictly in this priority order:**
+  1. \`page.getByTestId('...')\` — when a \`data-testid\` / \`data-test-id\` attribute is present
+  2. \`page.getByRole('...', { name: '...' })\` — for buttons, links, inputs, headings, checkboxes, etc.
+  3. \`page.getByLabel('...')\` — for form fields associated with a \`<label>\`
+  4. \`page.getByPlaceholder('...')\` — for inputs identified by placeholder text
+  5. \`page.getByText('...')\` — for static text content (use \`{ exact: true }\` when possible)
+  6. \`page.getByAltText('...')\` — for images
+  7. \`page.getByTitle('...')\` — for elements with a \`title\` attribute
+  8. \`page.locator('css=...')\` — **last resort only**, when no semantic selector is applicable; keep selectors short and class-based, never ID-only brittle ones
+  - **NEVER use XPath** (\`//\`, \`xpath=\`, \`page.locator('xpath=...')\`) — it is explicitly forbidden
+  - **Avoid \`page.locator()\` with raw CSS** unless none of the \`getBy*\` methods can target the element
 - Add async action methods that encapsulate multi-step interactions (e.g. \`login(email, password)\`)
 - Add \`async goto()\` for navigation to the page's primary URL
 - Never add assertions inside POMs — keep them in tests
@@ -760,6 +770,7 @@ Always generate ALL of these files:
 - Import types from '@playwright/test'
 - No \`any\` types
 - Prefer \`async/await\` over promise chains
+- Selectors: always prefer \`getBy*\` helpers; CSS only as last resort; XPath is never allowed
 
 Generate complete, immediately runnable code. Call generate_playwright_code with all files.`;
 
