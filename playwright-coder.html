@@ -237,12 +237,6 @@
     .pri-dot.low    { background: #22c55e; }
 
     /* ── Generate button ── */
-    .generate-section {
-      padding: 14px 16px;
-      border-top: 1px solid var(--border);
-      background: var(--surface);
-    }
-
     .btn-generate {
       width: 100%;
       padding: 11px;
@@ -598,7 +592,7 @@
   <!-- Left panel -->
   <div class="left-panel">
 
-    <!-- App URL -->
+    <!-- App URL + Generate -->
     <div class="panel-section">
       <div class="panel-section-title">Application URL</div>
       <input
@@ -606,7 +600,12 @@
         class="url-input"
         type="url"
         placeholder="https://your-app.com"
+        style="margin-bottom:10px"
       />
+      <button class="btn-generate" id="gen-btn" onclick="generate()">
+        <div class="gen-spinner"></div>
+        <span class="gen-label">Generate Playwright Code</span>
+      </button>
     </div>
 
     <!-- No-cases banner -->
@@ -627,14 +626,6 @@
     </div>
 
     <div class="case-list" id="case-list"></div>
-
-    <!-- Generate -->
-    <div class="generate-section">
-      <button class="btn-generate" id="gen-btn" onclick="generate()">
-        <div class="gen-spinner"></div>
-        <span class="gen-label">Generate Playwright Code</span>
-      </button>
-    </div>
 
   </div>
 
