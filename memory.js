@@ -148,9 +148,10 @@ export function deleteMemory(id) {
 export function memoryStats() {
   const entries = load().entries;
   return {
-    total:      entries.length,
-    exploration: entries.filter(e => e.type === 'exploration').length,
-    test_plan:  entries.filter(e => e.type === 'test_plan').length,
-    test_suite: entries.filter(e => e.type === 'test_suite').length,
+    total:           entries.length,
+    exploration:     entries.filter(e => e.type === 'exploration').length,
+    test_plan:       entries.filter(e => e.type === 'test_plan').length,
+    test_suite:      entries.filter(e => e.type === 'test_suite').length,
+    playwright_code: entries.filter(e => e.type === 'playwright_code').length,
   };
 }

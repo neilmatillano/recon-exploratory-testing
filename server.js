@@ -866,6 +866,17 @@ ${casesText}`;
 
     if (toolUse) {
       send({ playwright_code: toolUse.input });
+      const files = toolUse.input.files || [];
+      saveMemory({
+        type: 'playwright_code',
+        content: JSON.stringify(toolUse.input),
+        metadata: {
+          appUrl:    appUrl || 'http://localhost:3000',
+          fileCount: files.length,
+          filePaths: files.map(f => f.path),
+        },
+      }).then(entry => send({ memory_saved: { id: entry.id, type: 'playwright_code', title: entry.title } }))
+        .catch(() => {});
     } else {
       send({ error: 'Agent did not return code. Please try again.' });
     }
