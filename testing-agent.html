@@ -1085,6 +1085,11 @@
             scrollToBottom();
           }
 
+          // ── Memory auto-saved by server ──────────────────────
+          if (event.memory_saved) {
+            loadMemoryStats(); // refresh badge count
+          }
+
           // ── Screenshot ───────────────────────────────────────
           if (event.screenshot) {
             appendScreenshotRow(event.screenshot);
@@ -1118,9 +1123,17 @@
         ]);
         document.getElementById('btn-testwriter').classList.add('ready');
         document.getElementById('btn-save-memory').classList.add('visible');
-        // Capture structured plan content (longer responses = actual plan, not conversational follow-ups)
+        // Capture plan content; auto-save to memory the first time it's generated
         if (fullText.length > 600) {
+          const isFirstPlan = !planContent;
           planContent = fullText;
+          if (isFirstPlan) {
+            fetch('/api/memory/save', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'test_plan', content: planContent }),
+            }).then(() => loadMemoryStats()).catch(() => {});
+          }
         }
       }
 

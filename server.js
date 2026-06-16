@@ -495,6 +495,23 @@ app.post('/api/chat', async (req, res) => {
             const { sessionId, title, url, text, screenshots, videoUrl } = raw._exploration;
             send({ exploration: { sessionId, title, url, videoUrl, screenshots } });
 
+            // Auto-save exploration to memory so it's available in TestWriter
+            const memContent = [
+              `# Exploration: ${title}`,
+              `URL: ${url}`,
+              videoUrl ? `Video: ${videoUrl}` : '',
+              `Screenshots: ${screenshots.length}`,
+              '',
+              '## Page Content',
+              text,
+            ].filter(Boolean).join('\n');
+            saveMemory({
+              type: 'exploration',
+              content: memContent,
+              metadata: { url, sessionId, videoUrl: videoUrl ?? null, screenshotCount: screenshots.length },
+            }).then(entry => send({ memory_saved: { id: entry.id, type: 'exploration', title: entry.title } }))
+              .catch(() => {});
+
             const content = [
               {
                 type: 'text',
