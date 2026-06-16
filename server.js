@@ -15,7 +15,7 @@ const RECORDINGS_DIR = join(__dirname, 'recordings');
 mkdirSync(RECORDINGS_DIR, { recursive: true });
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 app.use('/recordings', express.static(RECORDINGS_DIR));
 
@@ -867,9 +867,15 @@ ${casesText}`;
     if (toolUse) {
       send({ playwright_code: toolUse.input });
       const files = toolUse.input.files || [];
+      const pwMetaHint = [
+        toolUse.input.summary || 'Playwright test code',
+        `App URL: ${appUrl || 'http://localhost:3000'}`,
+        `Files: ${files.map(f => f.path).join(', ')}`,
+      ].join('\n');
       saveMemory({
         type: 'playwright_code',
         content: JSON.stringify(toolUse.input),
+        metaHint: pwMetaHint,
         metadata: {
           appUrl:    appUrl || 'http://localhost:3000',
           fileCount: files.length,
@@ -904,10 +910,10 @@ app.post('/api/memory/search', (req, res) => {
 });
 
 app.post('/api/memory/save', async (req, res) => {
-  const { type, content, metadata } = req.body;
+  const { type, content, metaHint, metadata } = req.body;
   if (!type || !content) return res.status(400).json({ error: 'type and content are required' });
   try {
-    const entry = await saveMemory({ type, content, metadata: metadata ?? {} });
+    const entry = await saveMemory({ type, content, metaHint: metaHint ?? null, metadata: metadata ?? {} });
     res.json({ id: entry.id, title: entry.title, summary: entry.summary });
   } catch (err) {
     res.status(500).json({ error: err.message });

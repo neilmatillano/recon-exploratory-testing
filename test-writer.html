@@ -1176,10 +1176,17 @@
 
   // Auto-save after generation completes — stores full JSON for round-trip reload
   async function autoSaveTestSuite(testCasesPayload) {
-    const count      = (testCasesPayload.test_cases || []).length;
-    const categories = [...new Set((testCasesPayload.test_cases || []).map(tc => tc.category))];
-    // Store the full structured payload so it can be reloaded exactly
+    const cases      = testCasesPayload.test_cases || [];
+    const count      = cases.length;
+    const categories = [...new Set(cases.map(tc => tc.category))];
     const content    = JSON.stringify(testCasesPayload);
+    const metaHint   = [
+      `Test Suite: ${count} test cases`,
+      `Categories: ${categories.join(', ')}`,
+      testCasesPayload.summary ? `\nSummary: ${testCasesPayload.summary}` : '',
+      '\nTest Cases:',
+      ...cases.slice(0, 20).map(tc => `- ${tc.id}: ${tc.title} (${tc.category}, ${tc.priority})`),
+    ].filter(s => s !== '').join('\n');
     try {
       await fetch('/api/memory/save', {
         method: 'POST',
@@ -1187,6 +1194,7 @@
         body: JSON.stringify({
           type: 'test_suite',
           content,
+          metaHint,
           metadata: { testCount: count, categories },
         }),
       });

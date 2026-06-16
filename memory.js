@@ -84,12 +84,14 @@ function score(entry, queryTokens) {
 
 /**
  * Save a new memory entry.
- * type: 'exploration' | 'test_plan' | 'test_suite'
- * content: raw text (plan, findings, or test-case summary)
+ * type: 'exploration' | 'test_plan' | 'test_suite' | 'playwright_code'
+ * content: raw text or JSON string — stored in full, no truncation
+ * metaHint: optional human-readable text used for metadata extraction
+ *   instead of content (use when content is a JSON blob)
  * metadata: arbitrary extra fields (appName, url, testCount, categories …)
  */
-export async function saveMemory({ type, content, metadata = {} }) {
-  const meta  = await extractMeta(type, content);
+export async function saveMemory({ type, content, metaHint = null, metadata = {} }) {
+  const meta  = await extractMeta(type, metaHint ?? content);
   const entry = {
     id:        `mem_${Date.now()}`,
     type,
@@ -97,7 +99,7 @@ export async function saveMemory({ type, content, metadata = {} }) {
     title:     meta.title,
     summary:   meta.summary,
     keywords:  meta.keywords,
-    content:   content.slice(0, 50000),
+    content,   // stored in full — no size cap
     metadata:  { appName: meta.appName, domain: meta.domain, ...metadata },
   };
   const store = load();
