@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PlaywrightCoder — Test Code Generator</title>
+  <title>PlaywrightCoder — Probe QA Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <!-- Prism.js for syntax highlighting -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js" defer></script>
@@ -14,24 +17,42 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface2: #263347;
-      --border: #334155;
-      --border-light: #475569;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --accent: #7c3aed;
-      --accent-h: #6d28d9;
-      --accent-light: #a78bfa;
-      --green: #22c55e;
-      --yellow: #eab308;
-      --red: #ef4444;
-      --header-bg: #0a0f1e;
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --surface2: #f1f3f6;
+      --border: #e4e7ec;
+      --border-light: #d3d8e0;
+      --text: #161b26;
+      --muted: #5b6472;
+      --text-2: #5b6472;
+      --text-3: #8a93a3;
+      --accent: #5b5bd6;
+      --accent-fg: #ffffff;
+      --accent-h: #4f4fbf;
+      --accent-light: #8585f2;
+      --accent-soft: #ececfb;
+      --radius: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
+      --shadow-md: 0 6px 22px rgba(16,24,40,.10);
+      --font-ui: 'Space Grotesk', -apple-system, sans-serif;
+      --font-mono: 'IBM Plex Mono', Consolas, monospace;
+      --green: #1f8a4c;
+      --yellow: #a9711a;
+      --red: #c0382b;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0b0e14; --surface: #11151d; --surface2: #161b25;
+      --border: #232a36; --border-light: #323b49;
+      --text: #e7eaf0; --muted: #98a2b3; --text-2: #98a2b3; --text-3: #6b7585;
+      --accent: #8585f2; --accent-fg: #0b0e14; --accent-h: #7070e0;
+      --accent-light: #bcbcf9; --accent-soft: #1e2042;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.4); --shadow-md: 0 8px 28px rgba(0,0,0,.5);
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: var(--font-ui);
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -42,10 +63,10 @@
 
     /* ── Header ── */
     header {
-      background: var(--header-bg);
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
       padding: 0 20px;
-      height: 56px;
+      height: 60px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -53,35 +74,56 @@
       z-index: 10;
     }
 
-    .header-brand { display: flex; align-items: center; gap: 10px; }
+    .header-brand { display: flex; align-items: center; gap: 22px; }
+
+    .brand-logo { display: flex; align-items: center; gap: 10px; }
 
     .brand-icon {
-      width: 32px; height: 32px;
+      width: 30px; height: 30px;
       background: var(--accent);
-      border-radius: 8px;
+      border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
+      box-shadow: var(--shadow-sm);
     }
 
-    .brand-name  { font-size: 1rem; font-weight: 700; color: var(--text); }
-    .brand-tag   { font-size: 0.7rem; background: rgba(255,255,255,0.08); color: var(--muted);
-                   padding: 2px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .brand-name  { font-size: 0.94rem; font-weight: 700; letter-spacing: -0.01em; color: var(--text); line-height: 1.05; }
+    .brand-tag   { font-size: 0.62rem; color: var(--text-3); letter-spacing: .08em; text-transform: uppercase; }
+
+    .header-nav {
+      display: flex; gap: 3px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 3px;
+    }
+    .nav-tab {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 14px; border: none; background: transparent;
+      color: var(--muted); font: 600 13px/1 var(--font-ui); border-radius: 8px; cursor: pointer;
+      transition: all .15s; text-decoration: none;
+    }
+    .nav-tab:hover { background: var(--surface); color: var(--text); }
+    .nav-tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
 
     .header-actions { display: flex; gap: 8px; align-items: center; }
 
     .btn-link {
-      padding: 6px 14px; border: 1px solid var(--border); color: var(--muted);
-      border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
-      background: transparent; text-decoration: none; transition: all 0.15s;
+      padding: 7px 14px; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 9px; font: 600 12.5px/1 var(--font-ui); cursor: pointer;
+      background: var(--surface); text-decoration: none; transition: all 0.15s;
     }
-    .btn-link:hover { background: var(--surface); color: var(--text); border-color: var(--border-light); }
+    .btn-link:hover { background: var(--surface2); color: var(--text); border-color: var(--border-light); }
+
+    .btn-icon {
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+      border-radius: 9px; cursor: pointer; transition: all .15s;
+    }
+    .btn-icon:hover { background: var(--surface2); color: var(--text); }
 
     /* ── Layout ── */
     .app-body {
       display: flex;
       flex: 1;
       overflow: hidden;
-      height: calc(100vh - 56px);
+      height: calc(100vh - 60px);
     }
 
     /* ── Left panel ── */
@@ -113,16 +155,16 @@
       width: 100%;
       background: var(--surface2);
       border: 1.5px solid var(--border);
-      border-radius: 7px;
+      border-radius: var(--radius);
       padding: 8px 12px;
       color: var(--text);
       font-size: 0.85rem;
-      font-family: "SF Mono", Consolas, monospace;
+      font-family: var(--font-mono);
       outline: none;
       transition: border-color 0.2s;
     }
-    .url-input:focus { border-color: var(--accent-light); }
-    .url-input::placeholder { color: var(--muted); }
+    .url-input:focus { border-color: var(--accent); }
+    .url-input::placeholder { color: var(--text-3); }
 
     /* ── Test case list ── */
     .case-list-header {
@@ -148,13 +190,13 @@
       cursor: pointer;
       transition: all 0.15s;
     }
-    .btn-sel:hover { border-color: var(--accent-light); color: var(--accent-light); }
+    .btn-sel:hover { border-color: var(--accent); color: var(--accent); }
 
     .selected-count {
       font-size: 0.78rem;
       color: var(--muted);
     }
-    .selected-count strong { color: var(--accent-light); }
+    .selected-count strong { color: var(--accent); }
 
     .case-list {
       flex: 1;
@@ -185,7 +227,7 @@
     .category-check-all {
       font-size: 0.65rem;
       cursor: pointer;
-      color: var(--accent-light);
+      color: var(--accent);
       opacity: 0.7;
     }
     .category-check-all:hover { opacity: 1; }
@@ -213,8 +255,8 @@
     .case-item-id {
       font-size: 0.68rem;
       font-weight: 700;
-      color: var(--accent-light);
-      font-family: "SF Mono", monospace;
+      color: var(--accent);
+      font-family: var(--font-mono);
     }
 
     .case-item-title {
@@ -232,9 +274,9 @@
       flex-shrink: 0;
       margin-top: 6px;
     }
-    .pri-dot.high   { background: #ef4444; }
-    .pri-dot.medium { background: #eab308; }
-    .pri-dot.low    { background: #22c55e; }
+    .pri-dot.high   { background: #c0382b; }
+    .pri-dot.medium { background: #a9711a; }
+    .pri-dot.low    { background: #1f8a4c; }
 
     /* ── Generate button ── */
     .btn-generate {
@@ -254,7 +296,7 @@
       gap: 8px;
     }
     .btn-generate:hover:not(:disabled) { background: var(--accent-h); }
-    .btn-generate:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+    .btn-generate:disabled { background: var(--surface2); color: var(--text-3); cursor: not-allowed; border: 1px solid var(--border); }
 
     .gen-spinner {
       width: 14px; height: 14px;
@@ -345,25 +387,24 @@
 
     .install-note {
       font-size: 0.78rem;
-      color: #86efac;
-      background: rgba(34, 197, 94, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      border-radius: 5px;
-      padding: 3px 10px;
-      font-family: "SF Mono", monospace;
+      color: var(--green);
+      background: rgba(31, 138, 76, 0.1);
+      border: 1px solid rgba(31, 138, 76, 0.3);
+      border-radius: var(--radius);
+      padding: 5px 11px;
+      font-family: var(--font-mono);
       cursor: pointer;
       transition: background 0.15s;
     }
-    .install-note:hover { background: rgba(34, 197, 94, 0.2); }
+    .install-note:hover { background: rgba(31, 138, 76, 0.2); }
 
     .btn-download-zip {
-      padding: 6px 16px;
+      padding: 7px 16px;
       background: var(--accent);
-      color: white;
+      color: var(--accent-fg);
       border: none;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 700;
+      border-radius: 9px;
+      font: 700 12.5px/1 var(--font-ui);
       cursor: pointer;
       transition: background 0.15s;
       flex-shrink: 0;
@@ -387,7 +428,7 @@
     .file-tab {
       padding: 8px 16px;
       font-size: 0.78rem;
-      font-family: "SF Mono", Consolas, monospace;
+      font-family: var(--font-mono);
       color: var(--muted);
       cursor: pointer;
       white-space: nowrap;
@@ -400,7 +441,7 @@
     }
 
     .file-tab:hover { color: var(--text); background: var(--surface2); }
-    .file-tab.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+    .file-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
     .file-tab-icon { font-size: 0.8rem; opacity: 0.7; }
 
@@ -424,15 +465,14 @@
 
     .code-path {
       font-size: 0.8rem;
-      font-family: "SF Mono", monospace;
+      font-family: var(--font-mono);
       color: var(--muted);
     }
     .code-path span { color: var(--text); }
 
     .btn-copy {
       padding: 4px 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      font: 600 0.75rem/1 var(--font-ui);
       border: 1px solid var(--border);
       border-radius: 5px;
       background: transparent;
@@ -440,7 +480,7 @@
       cursor: pointer;
       transition: all 0.15s;
     }
-    .btn-copy:hover { border-color: var(--accent-light); color: var(--accent-light); }
+    .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
     .btn-copy.copied { color: var(--green); border-color: var(--green); }
 
     .code-scroll {
@@ -450,12 +490,12 @@
 
     .code-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
     .code-scroll::-webkit-scrollbar-track { background: transparent; }
-    .code-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .code-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
     .code-scroll pre {
       margin: 0 !important;
       border-radius: 0 !important;
-      background: #1a1a2e !important;
+      background: #0d1117 !important;
       min-height: 100%;
       font-size: 0.82rem !important;
       line-height: 1.6 !important;
@@ -466,22 +506,22 @@
     /* No cases state */
     .no-cases-banner {
       display: none;
-      background: #1c1917;
-      border: 1px solid #44403c;
+      background: var(--surface2);
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px 16px;
       margin: 12px 16px;
       font-size: 0.82rem;
-      color: #a8a29e;
+      color: var(--text-2);
       line-height: 1.5;
     }
     .no-cases-banner.visible { display: block; }
-    .no-cases-banner a { color: var(--accent-light); text-decoration: none; }
+    .no-cases-banner a { color: var(--accent); text-decoration: none; }
     .no-cases-banner a:hover { text-decoration: underline; }
 
     /* ── Memory panel ── */
     .mem-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 50;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 50;
       display: none;
     }
     .mem-overlay.open { display: block; }
@@ -491,6 +531,7 @@
       background: var(--surface); border-left: 1px solid var(--border);
       display: flex; flex-direction: column; z-index: 51;
       transform: translateX(100%); transition: transform 0.22s ease;
+      box-shadow: var(--shadow-md);
     }
     .mem-overlay.open .mem-panel { transform: translateX(0); }
 
@@ -498,10 +539,10 @@
       padding: 14px 16px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
     }
-    .mem-panel-title { font-size: 0.9rem; font-weight: 700; }
+    .mem-panel-title { font: 700 0.9rem/1 var(--font-ui); color: var(--text); }
     .mem-panel-close {
       background: none; border: none; color: var(--muted); font-size: 1.1rem;
-      cursor: pointer; padding: 4px 8px; border-radius: 4px; line-height: 1;
+      cursor: pointer; padding: 4px 8px; border-radius: 6px; line-height: 1;
     }
     .mem-panel-close:hover { color: var(--text); background: var(--surface2); }
 
@@ -510,11 +551,11 @@
       display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0;
     }
     .mem-chip {
-      padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;
-      background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+      padding: 4px 11px; border-radius: 99px; font: 600 0.72rem/1 var(--font-ui);
+      background: var(--surface2); color: var(--text-2); border: 1px solid var(--border);
     }
     .mem-chip.active {
-      background: rgba(124,58,237,0.18); color: var(--accent-light); border-color: var(--accent);
+      background: var(--accent-soft); color: var(--accent); border-color: var(--accent);
     }
 
     .mem-list { flex: 1; overflow-y: auto; padding: 8px; }
@@ -522,49 +563,50 @@
     .mem-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
     .mem-entry {
-      background: var(--surface2); border: 1px solid var(--border); border-radius: 7px;
-      padding: 10px 12px; margin-bottom: 8px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 10px 12px; margin-bottom: 8px; transition: border-color .15s;
     }
     .mem-entry:hover { border-color: var(--border-light); }
 
-    .mem-entry-title { font-size: 0.82rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
-    .mem-entry-meta  { font-size: 0.7rem; color: var(--muted); margin-bottom: 5px; }
+    .mem-entry-title { font: 600 0.82rem/1.3 var(--font-ui); color: var(--text); margin-bottom: 3px; }
+    .mem-entry-meta  { font-size: 0.7rem; color: var(--text-3); margin-bottom: 5px; }
     .mem-entry-sum   {
-      font-size: 0.74rem; color: var(--muted); line-height: 1.4; margin-bottom: 8px;
+      font-size: 0.74rem; color: var(--text-2); line-height: 1.4; margin-bottom: 8px;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .mem-entry-actions { display: flex; gap: 6px; }
 
     .mem-btn-load {
-      padding: 3px 10px; font-size: 0.72rem; font-weight: 600;
-      background: rgba(124,58,237,0.2); color: var(--accent-light);
-      border: 1px solid var(--accent); border-radius: 5px; cursor: pointer;
+      padding: 4px 10px; font: 600 0.72rem/1 var(--font-ui);
+      background: var(--accent-soft); color: var(--accent);
+      border: 1px solid var(--accent); border-radius: 6px; cursor: pointer;
       transition: background 0.15s;
     }
-    .mem-btn-load:hover { background: rgba(124,58,237,0.38); }
+    .mem-btn-load:hover { background: var(--accent); color: var(--accent-fg); }
 
     .mem-btn-del {
-      padding: 3px 10px; font-size: 0.72rem; font-weight: 600;
-      background: transparent; color: var(--muted);
-      border: 1px solid var(--border); border-radius: 5px; cursor: pointer;
+      padding: 4px 10px; font: 600 0.72rem/1 var(--font-ui);
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
       transition: all 0.15s;
     }
-    .mem-btn-del:hover { color: var(--red); border-color: var(--red); }
+    .mem-btn-del:hover { color: var(--red); border-color: var(--red); background: rgba(192,56,43,.06); }
 
-    .mem-empty { text-align: center; padding: 40px 16px; color: var(--muted); font-size: 0.83rem; line-height: 1.6; }
+    .mem-empty { text-align: center; padding: 40px 16px; color: var(--text-2); font-size: 0.83rem; line-height: 1.6; }
 
     .pc-badge {
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 17px; height: 17px; padding: 0 4px;
-      background: var(--accent); color: white;
+      background: var(--accent); color: var(--accent-fg);
       border-radius: 99px; font-size: 0.65rem; font-weight: 700;
       margin-left: 5px; vertical-align: middle;
     }
 
     .mem-saved-toast {
       position: fixed; bottom: 20px; right: 20px;
-      background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4);
-      color: #86efac; font-size: 0.8rem; padding: 8px 14px; border-radius: 7px;
+      background: rgba(31,138,76,0.12); border: 1px solid rgba(31,138,76,0.35);
+      color: var(--green); font: 500 0.8rem/1 var(--font-ui);
+      padding: 9px 16px; border-radius: var(--radius);
       z-index: 100; opacity: 0; transition: opacity 0.3s; pointer-events: none;
     }
     .mem-saved-toast.show { opacity: 1; }
@@ -574,16 +616,42 @@
 
 <header>
   <div class="header-brand">
-    <div class="brand-icon">🎭</div>
-    <span class="brand-name">PlaywrightCoder</span>
-    <span class="brand-tag">Test Code Generator</span>
+    <div class="brand-logo">
+      <div class="brand-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="6.5" cy="6.5" r="4" stroke="white" stroke-width="1.5"/>
+          <line x1="9.5" y1="9.5" x2="13" y2="13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Probe</div>
+        <div class="brand-tag">QA Studio</div>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <a href="/testing-agent.html" class="nav-tab">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5.5" cy="5.5" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M8.5 8.5L12 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Explore
+      </a>
+      <a href="/test-writer.html" class="nav-tab">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h6M2 10h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Write
+      </a>
+      <a href="/playwright-coder.html" class="nav-tab active" aria-current="page">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l-2 2 2 2M11 5l2 2-2 2M8 2l-2 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Code
+      </a>
+    </nav>
   </div>
   <div class="header-actions">
     <button class="btn-link" onclick="openMemoryPanel()" id="mem-btn">
-      🧠 Memory<span class="pc-badge" id="pc-mem-badge" style="display:none">0</span>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="vertical-align:-1px"><path d="M7 1.5a5.5 5.5 0 1 1 0 11A5.5 5.5 0 0 1 7 1.5z" stroke="currentColor" stroke-width="1.3"/><path d="M7 4.5v3.5l2 1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Memory<span class="pc-badge" id="pc-mem-badge" style="display:none">0</span>
     </button>
-    <a href="/test-writer.html" class="btn-link">← TestWriter</a>
-    <a href="/testing-agent.html" class="btn-link">ExploreAI</a>
+    <button class="btn-icon" onclick="toggleTheme()" title="Toggle theme">
+      <svg id="pc-icon-moon" width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M13 9a6 6 0 1 1-7-7 4.5 4.5 0 0 0 7 7z" stroke="currentColor" stroke-width="1.4" fill="none"/></svg>
+      <svg id="pc-icon-sun" width="15" height="15" viewBox="0 0 15 15" fill="none" style="display:none"><circle cx="7.5" cy="7.5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M7.5 1v1.5M7.5 12.5V14M1 7.5h1.5M12.5 7.5H14M3.2 3.2l1 1M10.8 10.8l1 1M10.8 3.2l-1 1M3.2 10.8l1-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </button>
   </div>
 </header>
 
@@ -651,7 +719,28 @@
       <div class="summary-bar">
         <div class="summary-text" id="summary-text"></div>
         <span class="install-note" id="install-note" onclick="copyInstall(this)" title="Click to copy"></span>
+        <button id="run-btn" onclick="runTests()" style="
+          padding:5px 14px;background:var(--low-bg,#e6f4ea);color:var(--low-fg,#1a6e35);
+          border:1.5px solid var(--low-border,#82c99a);border-radius:7px;
+          font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;display:none;
+        " title="Run generated tests (R)">▶ Run Tests</button>
         <button class="btn-download-zip" onclick="downloadZip()">⬇ Download ZIP</button>
+      </div>
+
+      <!-- Terminal output panel -->
+      <div id="terminal-panel" style="display:none;margin:0 16px 16px;border-radius:10px;overflow:hidden;border:1px solid var(--border);">
+        <div style="background:var(--surface-2);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+          <span style="font-size:.78rem;font-weight:700;color:var(--text-2)">▶ Test Runner</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="terminal-status" style="font-size:.72rem;font-weight:700;"></span>
+            <button onclick="clearTerminal()" style="background:none;border:none;font-size:.72rem;color:var(--text-3);cursor:pointer;padding:2px 6px;">Clear</button>
+            <button onclick="document.getElementById('terminal-panel').style.display='none'" style="background:none;border:none;font-size:.9rem;color:var(--text-3);cursor:pointer;padding:2px 6px;">✕</button>
+          </div>
+        </div>
+        <div id="terminal-output" style="
+          background:#0d1117;color:#c9d1d9;font:13px/1.6 'Menlo','Courier New',monospace;
+          padding:12px 16px;max-height:340px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;
+        "></div>
       </div>
       <div class="file-tabs" id="file-tabs"></div>
       <div class="code-view">
@@ -672,10 +761,14 @@
 <div class="mem-overlay" id="mem-overlay" onclick="handleOverlayClick(event)">
   <div class="mem-panel" onclick="event.stopPropagation()">
     <div class="mem-panel-header">
-      <span class="mem-panel-title">🧠 Saved Playwright Code</span>
+      <span class="mem-panel-title">🧠 Memory Browser</span>
       <button class="mem-panel-close" onclick="closeMemoryPanel()">✕</button>
     </div>
-    <div class="mem-stats-bar" id="pc-mem-stats"></div>
+    <div class="mem-stats-bar" id="pc-mem-stats" style="flex-wrap:wrap;gap:6px;"></div>
+    <div style="padding:0 14px 10px;">
+      <input id="pc-mem-search" type="text" placeholder="Search memories…" oninput="renderPCMemoryList()"
+        style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:0.8rem;" />
+    </div>
     <div class="mem-list" id="pc-mem-list">
       <div class="mem-empty">Loading…</div>
     </div>
@@ -853,6 +946,7 @@
   // ── Render output ──────────────────────────────────────────────────────────
   function renderOutput({ summary, install_note, files }) {
     hideProgress();
+    document.getElementById('run-btn').style.display = '';
 
     // Summary bar
     const sumEl = document.getElementById('summary-text');
@@ -1019,14 +1113,31 @@
   async function loadPCMemoryStats() {
     const stats = await fetch('/api/memory/stats').then(r => r.json()).catch(() => null);
     if (!stats) return;
-    const count = stats.playwright_code || 0;
+    const count = stats.total || 0;
     const badge = document.getElementById('pc-mem-badge');
     badge.textContent = count;
     badge.style.display = count ? '' : 'none';
   }
 
+  function applyTheme(dark) {
+    document.body.setAttribute('data-theme', dark ? 'dark' : 'light');
+    document.getElementById('pc-icon-moon').style.display = dark ? 'none' : '';
+    document.getElementById('pc-icon-sun').style.display  = dark ? '' : 'none';
+  }
+
+  function toggleTheme() {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    applyTheme(!isDark);
+    localStorage.setItem('probe_theme', !isDark ? 'dark' : 'light');
+  }
+
+  // Restore theme on load
+  applyTheme(localStorage.getItem('probe_theme') === 'dark');
+
   function openMemoryPanel() {
+    _pcMemFilter = '';
     document.getElementById('mem-overlay').classList.add('open');
+    document.getElementById('pc-mem-search').value = '';
     renderPCMemoryList();
   }
 
@@ -1038,6 +1149,13 @@
     if (e.target === document.getElementById('mem-overlay')) closeMemoryPanel();
   }
 
+  let _pcAllMemories = [];
+  let _pcMemFilter = '';
+
+  function pcTypeLabel(t) {
+    return { exploration: 'Exploration', test_plan: 'Test Plan', test_suite: 'Test Suite', playwright_code: 'Playwright' }[t] ?? t;
+  }
+
   async function renderPCMemoryList() {
     const statsEl = document.getElementById('pc-mem-stats');
     const listEl  = document.getElementById('pc-mem-list');
@@ -1045,30 +1163,76 @@
 
     const [stats, entries] = await Promise.all([
       fetch('/api/memory/stats').then(r => r.json()).catch(() => ({})),
-      fetch('/api/memory?type=playwright_code').then(r => r.json()).catch(() => []),
+      fetch('/api/memory').then(r => r.json()).catch(() => []),
     ]);
+    _pcAllMemories = entries;
 
-    statsEl.innerHTML = `
-      <span class="mem-chip active">🎭 Code <strong>${stats.playwright_code || 0}</strong></span>
-      <span class="mem-chip">Total <strong>${stats.total || 0}</strong></span>
-    `;
+    const chips = [
+      { type: '', label: `All (${stats.total || 0})` },
+      { type: 'playwright_code', label: `🎭 Code (${stats.playwright_code || 0})` },
+      { type: 'exploration',     label: `🔍 Explorations (${stats.exploration || 0})` },
+      { type: 'test_suite',      label: `🧪 Suites (${stats.test_suite || 0})` },
+    ];
+    statsEl.innerHTML = chips.map(c =>
+      `<button class="mem-chip${_pcMemFilter === c.type ? ' active' : ''}" onclick="setPCFilter('${c.type}')">${c.label}</button>`
+    ).join('');
 
-    if (!entries.length) {
-      listEl.innerHTML = '<div class="mem-empty">No saved Playwright code yet.<br>Generate code and it will be auto-saved here.</div>';
+    _renderPCList();
+  }
+
+  function setPCFilter(type) {
+    _pcMemFilter = type;
+    document.querySelectorAll('#pc-mem-stats .mem-chip').forEach(b => {
+      b.classList.toggle('active', b.textContent.includes(type === '' ? 'All' : pcTypeLabel(type)));
+    });
+    _renderPCList();
+  }
+
+  function _renderPCList() {
+    const listEl = document.getElementById('pc-mem-list');
+    const q = (document.getElementById('pc-mem-search')?.value || '').toLowerCase();
+    const shown = _pcAllMemories.filter(m =>
+      (!_pcMemFilter || m.type === _pcMemFilter) &&
+      (!q || `${m.title} ${m.summary}`.toLowerCase().includes(q))
+    );
+
+    if (!shown.length) {
+      listEl.innerHTML = '<div class="mem-empty">No memories found.<br>Generate and explore to populate memory.</div>';
       return;
     }
 
-    listEl.innerHTML = entries.map(e => `
+    listEl.innerHTML = shown.map(e => `
       <div class="mem-entry" id="me-${e.id}">
+        <div class="mem-entry-hdr" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span class="mem-chip" style="font-size:0.65rem;padding:1px 7px;cursor:default;background:var(--surface-2);">${pcTypeLabel(e.type)}</span>
+          <span style="font-size:0.7rem;color:var(--text-3);margin-left:auto;">${new Date(e.timestamp).toLocaleDateString()}</span>
+        </div>
         <div class="mem-entry-title">${escHtml(e.title)}</div>
-        <div class="mem-entry-meta">${new Date(e.timestamp).toLocaleString()}${e.metadata?.appUrl ? ' · ' + escHtml(e.metadata.appUrl) : ''}</div>
         <div class="mem-entry-sum">${escHtml(e.summary)}</div>
-        <div class="mem-entry-actions">
-          <button class="mem-btn-load" onclick="loadFromMemory('${e.id}')">Load Code</button>
-          <button class="mem-btn-del"  onclick="deletePCMemory('${e.id}', this)">Delete</button>
+        <div class="mem-entry-actions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+          ${e.type === 'playwright_code' ? `<button class="mem-btn-load" onclick="loadFromMemory('${e.id}')">Load Code</button>` : ''}
+          <button class="mem-btn-del" onclick="viewPCMemory('${e.id}')">View</button>
+          <button class="mem-btn-del" onclick="deletePCMemory('${e.id}', this)">Delete</button>
         </div>
       </div>
     `).join('');
+  }
+
+  async function viewPCMemory(id) {
+    const m = await fetch(`/api/memory/${id}`).then(r => r.json()).catch(() => null);
+    if (!m) return;
+    const lb = document.createElement('div');
+    lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;';
+    lb.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:700px;width:100%;position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <strong style="font-size:.9rem;color:var(--text)">${escHtml(m.title)}</strong>
+        <button onclick="this.closest('div[style]').remove()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-3)">✕</button>
+      </div>
+      <pre style="white-space:pre-wrap;font-size:.78rem;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:14px;max-height:420px;overflow-y:auto;">${escHtml(m.content)}</pre>
+      <div style="margin-top:10px;font-size:.7rem;color:var(--text-3)">Saved ${new Date(m.timestamp).toLocaleString()}</div>
+    </div>`;
+    lb.addEventListener('click', e => { if (e.target === lb) lb.remove(); });
+    document.body.appendChild(lb);
   }
 
   async function loadFromMemory(id) {
@@ -1106,11 +1270,161 @@
     setTimeout(() => toast.classList.remove('show'), 3000);
   }
 
+  // ── App URL persistence ───────────────────────────────────────────────────
+  const APP_URL_KEY = 'probe_app_url';
+  const appUrlInput = document.getElementById('app-url');
+
+  function restoreAppUrl() {
+    const saved = localStorage.getItem(APP_URL_KEY);
+    if (saved) appUrlInput.value = saved;
+  }
+
+  appUrlInput.addEventListener('input', () => {
+    localStorage.setItem(APP_URL_KEY, appUrlInput.value.trim());
+  });
+
   // ── Boot ──────────────────────────────────────────────────────────────────
+  // ── Test runner ────────────────────────────────────────────────────────────
+  async function runTests() {
+    if (!generatedFiles || !generatedFiles.length) return;
+
+    // Find the primary spec file (prefer .spec.ts)
+    const specFile = generatedFiles.find(f => /\.spec\.[tj]s$/.test(f.path)) || generatedFiles[0];
+    if (!specFile?.content) { showToast('No runnable spec file found'); return; }
+
+    const termPanel  = document.getElementById('terminal-panel');
+    const termOutput = document.getElementById('terminal-output');
+    const termStatus = document.getElementById('terminal-status');
+    const runBtn     = document.getElementById('run-btn');
+
+    termPanel.style.display = '';
+    termOutput.textContent = '';
+    termStatus.textContent = '⏳ Running…';
+    termStatus.style.color = 'var(--text-3)';
+    runBtn.disabled = true;
+    runBtn.textContent = '⏳ Running…';
+
+    // ANSI color stripping helper
+    const stripAnsi = s => s.replace(/\x1b\[[0-9;]*m/g, '');
+
+    // Terminal color helper (simple: pass/fail lines)
+    const colorLine = (line) => {
+      if (/✓|passed/.test(line)) return `<span style="color:#3fb950">${escHtml(line)}</span>`;
+      if (/✗|×|failed|error/i.test(line)) return `<span style="color:#f85149">${escHtml(line)}</span>`;
+      if (/^\s*(Running|Worker|Chromium|webkit|firefox)/i.test(line)) return `<span style="color:#79c0ff">${escHtml(line)}</span>`;
+      return escHtml(line);
+    };
+
+    try {
+      const res = await fetch('/api/run-tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: specFile.content, filename: specFile.path.replace(/[^a-zA-Z0-9_-]/g, '_') }),
+      });
+
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+        for (const raw of lines) {
+          if (!raw.startsWith('data: ')) continue;
+          const payload = raw.slice(6).trim();
+          if (payload === '[DONE]') break;
+          let ev;
+          try { ev = JSON.parse(payload); } catch { continue; }
+
+          if (ev.status) {
+            termOutput.innerHTML += `<span style="color:#8b949e">${escHtml(ev.message || ev.status)}\n</span>`;
+          } else if (ev.line !== undefined) {
+            const clean = stripAnsi(ev.line);
+            if (clean.trim()) termOutput.innerHTML += colorLine(clean) + '\n';
+          } else if (ev.done) {
+            const pass = ev.passCount || 0;
+            const fail = ev.failCount || 0;
+            const icon = fail > 0 ? '✗' : (pass > 0 ? '✓' : '—');
+            const col  = fail > 0 ? '#f85149' : (pass > 0 ? '#3fb950' : '#8b949e');
+            termStatus.textContent = `${icon} ${pass} passed, ${fail} failed`;
+            termStatus.style.color = col;
+          } else if (ev.error) {
+            termOutput.innerHTML += `<span style="color:#f85149">Error: ${escHtml(ev.error)}\n</span>`;
+          }
+          termOutput.scrollTop = termOutput.scrollHeight;
+        }
+      }
+    } catch (err) {
+      termOutput.innerHTML += `<span style="color:#f85149">Error: ${escHtml(err.message)}\n</span>`;
+      termStatus.textContent = '✗ Error';
+      termStatus.style.color = '#f85149';
+    } finally {
+      runBtn.disabled = false;
+      runBtn.textContent = '▶ Run Tests';
+    }
+  }
+
+  function clearTerminal() {
+    document.getElementById('terminal-output').textContent = '';
+    document.getElementById('terminal-status').textContent = '';
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     loadCases();
     loadPCMemoryStats();
+    restoreAppUrl();
   });
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  (function initShortcuts() {
+    const SHORTCUTS = [
+      { key: 'G', desc: 'Generate Playwright code' },
+      { key: 'R', desc: 'Run tests (if code generated)' },
+      { key: 'C', desc: 'Copy generated code' },
+      { key: '?', desc: 'Show this help' },
+    ];
+    const style = document.createElement('style');
+    style.textContent = `
+      .kb-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .15s}
+      .kb-overlay.open{opacity:1;pointer-events:all}
+      .kb-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;width:320px;max-width:90vw}
+      .kb-title{font-size:.95rem;font-weight:700;margin:0 0 16px;color:var(--text)}
+      .kb-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)}
+      .kb-row:last-child{border-bottom:none}
+      .kb-key{font-family:monospace;font-size:.8rem;background:var(--surface-2);border:1px solid var(--border);border-radius:5px;padding:2px 8px;color:var(--text-2)}
+      .kb-desc{font-size:.82rem;color:var(--text-2)}
+      .kb-close{display:block;margin-top:16px;text-align:right;font-size:.78rem;color:var(--text-3);cursor:pointer}
+      .kb-hint{position:fixed;bottom:14px;right:16px;font-size:.7rem;color:var(--text-3);pointer-events:none;z-index:10}
+    `;
+    document.head.appendChild(style);
+    const overlay = document.createElement('div');
+    overlay.className = 'kb-overlay';
+    overlay.id = 'kb-overlay';
+    overlay.innerHTML = `<div class="kb-modal">
+      <p class="kb-title">Keyboard shortcuts</p>
+      ${SHORTCUTS.map(s => `<div class="kb-row"><span class="kb-desc">${s.desc}</span><kbd class="kb-key">${s.key}</kbd></div>`).join('')}
+      <span class="kb-close" onclick="document.getElementById('kb-overlay').classList.remove('open')">Close (Esc)</span>
+    </div>`;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+    document.body.appendChild(overlay);
+    const hint = document.createElement('div');
+    hint.className = 'kb-hint'; hint.textContent = '? for shortcuts';
+    document.body.appendChild(hint);
+
+    document.addEventListener('keydown', e => {
+      const tag = document.activeElement?.tagName;
+      const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      if (e.key === 'Escape') { document.getElementById('kb-overlay').classList.remove('open'); return; }
+      if (e.key === '?' && !isEditing) { e.preventDefault(); document.getElementById('kb-overlay').classList.toggle('open'); return; }
+      if (isEditing) return;
+      if (e.key === 'g' || e.key === 'G') { e.preventDefault(); document.getElementById('gen-btn')?.click(); }
+      else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); document.getElementById('run-btn')?.click(); }
+      else if (e.key === 'c' || e.key === 'C') { e.preventDefault(); document.getElementById('copy-btn')?.click(); }
+    });
+  })();
 </script>
 </body>
 </html>

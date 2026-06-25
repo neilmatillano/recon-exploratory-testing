@@ -2,7 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { chromium } from 'playwright';
-import { renameSync, mkdirSync } from 'fs';
+import { renameSync, mkdirSync, writeFileSync, rmSync } from 'fs';
+import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join, extname, basename } from 'path';
 import {
@@ -606,6 +607,12 @@ For each exploratory scenario or risk area, generate:
 - System state (session, cookies, emails, logs)
 - Exact error messages where applicable
 
+**Estimated Time**: How long a manual tester needs to execute this test. Use one of: "2 min", "5 min", "10 min", "15 min", "30 min".
+
+**Automated**: true if this is a good Playwright automation candidate (stable, deterministic, repeatable). false for purely visual, exploratory, or manual-verification-only tests.
+
+**Tags**: 3–5 lowercase keyword tags for cross-filtering (e.g. ["login", "auth", "smoke"] or ["checkout", "payment", "regression"]).
+
 Generate a minimum of 15 test cases and cover every major risk area from the findings. Quality over speed — every test case must be immediately executable by a human tester with no ambiguity.`;
 
 const TEST_WRITER_TOOLS = [
@@ -633,8 +640,11 @@ const TEST_WRITER_TOOLS = [
               preconditions:    { type: 'array', items: { type: 'string' } },
               steps:            { type: 'array', items: { type: 'string' } },
               expected_results: { type: 'array', items: { type: 'string' } },
+              estimated_time:   { type: 'string', description: 'e.g. "5 min"' },
+              automated:        { type: 'boolean', description: 'Good Playwright automation candidate?' },
+              tags:             { type: 'array', items: { type: 'string' }, description: '3-5 lowercase keyword tags' },
             },
-            required: ['id', 'title', 'category', 'priority', 'type', 'description', 'preconditions', 'steps', 'expected_results'],
+            required: ['id', 'title', 'category', 'priority', 'type', 'description', 'preconditions', 'steps', 'expected_results', 'estimated_time', 'automated', 'tags'],
           },
         },
       },
@@ -888,6 +898,152 @@ ${casesText}`;
     }
 
     res.write('data: [DONE]\n\n');
+    res.end();
+  } catch (err) {
+    send({ error: err.message });
+    res.end();
+  }
+});
+
+// ── In-app Playwright test runner ─────────────────────────────────────────
+
+const PROBE_RUNS_DIR = join(__dirname, 'probe_runs');
+mkdirSync(PROBE_RUNS_DIR, { recursive: true });
+
+app.post('/api/run-tests', async (req, res) => {
+  const { code, filename = 'probe_run' } = req.body;
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ error: 'code is required' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  const send = d => res.write(`data: ${JSON.stringify(d)}\n\n`);
+
+  // Write code to a temp .spec.ts file
+  const safeBase = filename.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+  const specFile = join(PROBE_RUNS_DIR, `${safeBase}_${Date.now()}.spec.ts`);
+  try {
+    writeFileSync(specFile, code, 'utf8');
+  } catch (err) {
+    send({ error: `Failed to write spec file: ${err.message}` });
+    return res.end();
+  }
+
+  send({ status: 'starting', message: `Running ${specFile.split('/').pop()}…` });
+
+  const configPath = join(__dirname, 'playwright.runner.config.js');
+  const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+
+  const proc = spawn(npx, [
+    'playwright', 'test',
+    specFile,
+    '--config', configPath,
+  ], {
+    cwd: __dirname,
+    env: { ...process.env, FORCE_COLOR: '0', CI: '1' },
+  });
+
+  let passCount = 0, failCount = 0, output = '';
+
+  const onData = (chunk) => {
+    const text = chunk.toString();
+    output += text;
+    // Stream each non-empty line
+    text.split('\n').forEach(line => {
+      if (line.trim()) send({ line: line.trimEnd() });
+      // Tally pass/fail from Playwright list reporter output
+      if (/✓|passed/.test(line)) passCount++;
+      if (/✗|×|failed/.test(line)) failCount++;
+    });
+  };
+
+  proc.stdout.on('data', onData);
+  proc.stderr.on('data', onData);
+
+  proc.on('close', (exitCode) => {
+    // Parse summary from output for accurate counts
+    const passMatch = output.match(/(\d+) passed/);
+    const failMatch = output.match(/(\d+) failed/);
+    if (passMatch) passCount = parseInt(passMatch[1]);
+    if (failMatch) failCount = parseInt(failMatch[1]);
+
+    send({ done: true, exitCode, passCount, failCount });
+    res.end();
+
+    // Clean up spec file
+    try { rmSync(specFile); } catch {}
+  });
+
+  proc.on('error', (err) => {
+    send({ error: `Process error: ${err.message}` });
+    res.end();
+    try { rmSync(specFile); } catch {}
+  });
+
+  // Abort if client disconnects
+  req.on('close', () => {
+    if (!proc.killed) proc.kill('SIGTERM');
+  });
+});
+
+// ── Bug report generator ───────────────────────────────────────────────────
+
+app.post('/api/bug-report', async (req, res) => {
+  const { failedTests = [], appUrl = '', runDate = new Date().toISOString() } = req.body;
+  if (!failedTests.length) return res.status(400).json({ error: 'No failed tests provided' });
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  const send = d => res.write(`data: ${JSON.stringify(d)}\n\n`);
+
+  const systemPrompt = `You are a QA engineer writing a professional bug report from a set of failed test cases.
+
+Write a clean Markdown bug report with these sections:
+1. **Summary** — 1–2 sentence overview of what failed and the likely impact
+2. **Environment** — App URL and test date
+3. **Failed Test Cases** — For each failed test: a sub-heading with the test ID and title, then the test steps and expected vs actual results (infer "Actual" from the test context)
+4. **Affected Areas** — Bullet list of the features / modules affected
+5. **Reproduction Steps** — Consolidated steps to reproduce the most critical failure
+6. **Severity** — High / Medium / Low with justification
+7. **Recommended Next Steps** — Concrete developer actions
+
+Be specific and professional. Format for Jira or GitHub issues. Use fenced code blocks where applicable.`;
+
+  const userPrompt = `App URL: ${appUrl || 'Not specified'}
+Test Run Date: ${runDate}
+
+Failed Test Cases:
+${failedTests.map(tc => `
+### ${tc.id}: ${tc.title}
+**Category**: ${tc.category} | **Priority**: ${tc.priority}
+**Description**: ${tc.description}
+**Steps**:
+${(tc.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}
+**Expected Results**:
+${(tc.expected_results || []).map(r => `- ${r}`).join('\n')}
+`).join('\n---\n')}
+
+Generate the bug report now.`;
+
+  try {
+    const stream = await anthropic.messages.stream({
+      model: 'claude-opus-4-5',
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+
+    let report = '';
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta') {
+        report += chunk.delta.text;
+        send({ chunk: chunk.delta.text });
+      }
+    }
+    send({ done: true, report });
     res.end();
   } catch (err) {
     send({ error: err.message });
