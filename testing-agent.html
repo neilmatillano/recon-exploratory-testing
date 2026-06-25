@@ -937,6 +937,16 @@
 
     .send-btn svg { width: 18px; height: 18px; }
 
+    .stop-btn {
+      width: 44px; height: 44px;
+      border-radius: 10px; border: none;
+      background: var(--high-bg); color: var(--high-fg);
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .stop-btn:hover { filter: brightness(.92); }
+
     .input-hint-row {
       display: flex;
       align-items: center;
@@ -1108,6 +1118,9 @@
       <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
     </svg>
   </button>
+  <button class="stop-btn" id="stop-btn" onclick="stopStreaming()" title="Stop (Esc)" style="display:none">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="2" width="10" height="10" rx="2"/></svg>
+  </button>
 </div>
 <div class="input-hint-row">
   <span class="input-hint">Enter to send · Shift+Enter for new line</span>
@@ -1139,6 +1152,8 @@
   let isStreaming = false;
   let messageCount = 0;
   let planContent = '';
+  let _streamController = null;
+  let _stopReason = null; // 'timeout' | 'user'
 
   // ── Timeout configuration ─────────────────────────────────────────────
   const TIMEOUT_KEY = 'explore_timeout_s';
@@ -1258,8 +1273,9 @@
     setStreaming(true);
 
     const timeoutMs = getTimeoutMs();
-    const controller = new AbortController();
-    const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
+    _streamController = new AbortController();
+    _stopReason = null;
+    const abortTimer = setTimeout(() => { _stopReason = 'timeout'; _streamController.abort(); }, timeoutMs);
     // Only show the countdown for user-initiated messages, not the auto-greeting
     if (!isBootstrap) startCountdown(timeoutMs);
 
@@ -1272,7 +1288,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: conversationHistory }),
-        signal: controller.signal,
+        signal: _streamController.signal,
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -1390,11 +1406,19 @@
       removeTyping(typingId);
       if (activeToolRowId) { completeToolRow(activeToolRowId); activeToolRowId = null; }
       if (err.name === 'AbortError') {
-        const s = Math.round(timeoutMs / 1000);
-        appendMessage('agent',
-          `⏱ **Timed out after ${s}s.** The agent was still working when the limit was reached.\n\n` +
-          `You can send a follow-up message to continue, adjust the timeout in the bar below, or start a **New Session**.`
-        );
+        if (_stopReason === 'user') {
+          if (fullText) {
+            appendMessage('agent', fullText + '\n\n*— stopped —*');
+          } else {
+            appendMessage('agent', '*Stopped.*');
+          }
+        } else {
+          const s = Math.round(timeoutMs / 1000);
+          appendMessage('agent',
+            `⏱ **Timed out after ${s}s.** The agent was still working when the limit was reached.\n\n` +
+            `You can send a follow-up message to continue, adjust the timeout in the bar below, or start a **New Session**.`
+          );
+        }
         scrollToBottom();
       } else {
         showError(err.message);
@@ -1602,8 +1626,16 @@
 
   function setStreaming(val) {
     isStreaming = val;
-    sendBtn.disabled = val;
+    sendBtn.style.display = val ? 'none' : '';
+    document.getElementById('stop-btn').style.display = val ? '' : 'none';
     inputEl.disabled = val;
+  }
+
+  function stopStreaming() {
+    if (_streamController) {
+      _stopReason = 'user';
+      _streamController.abort();
+    }
   }
 
   function scrollToBottom() {
@@ -1849,7 +1881,10 @@
 
     document.addEventListener('keydown', e => {
       const isEditing = document.activeElement === inputEl || document.activeElement?.isContentEditable;
-      if (e.key === 'Escape') { document.getElementById('kb-overlay').classList.remove('open'); return; }
+      if (e.key === 'Escape') {
+        if (isStreaming) { stopStreaming(); return; }
+        document.getElementById('kb-overlay').classList.remove('open'); return;
+      }
       if (e.key === '?' && !isEditing) { e.preventDefault(); document.getElementById('kb-overlay').classList.toggle('open'); return; }
       if (isEditing) return;
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); document.getElementById('btn-new-session')?.click(); }

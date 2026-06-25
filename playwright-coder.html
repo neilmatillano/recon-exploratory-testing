@@ -297,6 +297,8 @@
     }
     .btn-generate:hover:not(:disabled) { background: var(--accent-h); }
     .btn-generate:disabled { background: var(--surface2); color: var(--text-3); cursor: not-allowed; border: 1px solid var(--border); }
+    .btn-generate.stopping { background: var(--high-bg,#fdecec); color: var(--high-fg,#c0382b); border: 1.5px solid var(--high-fg,#c0382b); }
+    .btn-generate.stopping:hover { filter: brightness(.92); }
 
     .gen-spinner {
       width: 14px; height: 14px;
@@ -670,8 +672,9 @@
         placeholder="https://your-app.com"
         style="margin-bottom:10px"
       />
-      <button class="btn-generate" id="gen-btn" onclick="generate()">
+      <button class="btn-generate" id="gen-btn" onclick="handleGenClick()">
         <div class="gen-spinner"></div>
+        <svg class="stop-icon" width="12" height="12" viewBox="0 0 12 12" fill="currentColor" style="display:none;flex-shrink:0"><rect x="1" y="1" width="10" height="10" rx="2"/></svg>
         <span class="gen-label">Generate Playwright Code</span>
       </button>
     </div>
@@ -729,10 +732,11 @@
 
       <!-- Terminal output panel -->
       <div id="terminal-panel" style="display:none;margin:0 16px 16px;border-radius:10px;overflow:hidden;border:1px solid var(--border);">
-        <div style="background:var(--surface-2);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+        <div style="background:var(--surface2);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
           <span style="font-size:.78rem;font-weight:700;color:var(--text-2)">▶ Test Runner</span>
           <div style="display:flex;align-items:center;gap:10px;">
             <span id="terminal-status" style="font-size:.72rem;font-weight:700;"></span>
+            <button id="run-stop-btn" onclick="stopRun()" style="display:none;padding:2px 10px;font-size:.72rem;font-weight:700;background:var(--high-bg,#fdecec);color:var(--high-fg,#c0382b);border:1px solid var(--high-fg,#c0382b);border-radius:5px;cursor:pointer;">■ Stop</button>
             <button onclick="clearTerminal()" style="background:none;border:none;font-size:.72rem;color:var(--text-3);cursor:pointer;padding:2px 6px;">Clear</button>
             <button onclick="document.getElementById('terminal-panel').style.display='none'" style="background:none;border:none;font-size:.9rem;color:var(--text-3);cursor:pointer;padding:2px 6px;">✕</button>
           </div>
@@ -885,12 +889,14 @@
     showProgress('Analysing test cases…');
 
     generatedFiles = [];
+    _genController = new AbortController();
 
     try {
       const res = await fetch('/api/generate-playwright', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ testCases: selected, appUrl }),
+        signal: _genController.signal,
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -937,7 +943,15 @@
       }
     } catch (err) {
       hideProgress();
-      showError(err.message);
+      if (err.name === 'AbortError') {
+        if (generatedFiles.length) {
+          showToast('Stopped — partial output kept.');
+        } else {
+          document.getElementById('empty-state').style.display = '';
+        }
+      } else {
+        showError(err.message);
+      }
     } finally {
       setGenerating(false);
     }
@@ -1051,11 +1065,24 @@
   }
 
   // ── UI helpers ─────────────────────────────────────────────────────────────
+  let _genController = null;
+
+  function handleGenClick() {
+    const btn = document.getElementById('gen-btn');
+    if (btn.classList.contains('stopping')) {
+      if (_genController) _genController.abort();
+    } else {
+      generate();
+    }
+  }
+
   function setGenerating(on) {
     const btn = document.getElementById('gen-btn');
-    btn.disabled = on;
     btn.classList.toggle('loading', on);
-    btn.querySelector('.gen-label').textContent = on ? 'Generating…' : 'Generate Playwright Code';
+    btn.classList.toggle('stopping', on);
+    btn.querySelector('.gen-label').textContent = on ? 'Stop' : 'Generate Playwright Code';
+    btn.querySelector('.gen-spinner').style.display = on ? '' : 'none';
+    btn.querySelector('.stop-icon').style.display = on ? '' : 'none';
   }
 
   function showProgress(msg) {
@@ -1285,6 +1312,20 @@
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   // ── Test runner ────────────────────────────────────────────────────────────
+  let _runController = null;
+
+  function stopRun() {
+    if (_runController) _runController.abort();
+  }
+
+  function setRunning(on) {
+    const runBtn     = document.getElementById('run-btn');
+    const stopBtn    = document.getElementById('run-stop-btn');
+    runBtn.disabled  = on;
+    runBtn.textContent = on ? '⏳ Running…' : '▶ Run Tests';
+    if (stopBtn) stopBtn.style.display = on ? '' : 'none';
+  }
+
   async function runTests() {
     if (!generatedFiles || !generatedFiles.length) return;
 
@@ -1295,14 +1336,14 @@
     const termPanel  = document.getElementById('terminal-panel');
     const termOutput = document.getElementById('terminal-output');
     const termStatus = document.getElementById('terminal-status');
-    const runBtn     = document.getElementById('run-btn');
 
     termPanel.style.display = '';
     termOutput.textContent = '';
     termStatus.textContent = '⏳ Running…';
     termStatus.style.color = 'var(--text-3)';
-    runBtn.disabled = true;
-    runBtn.textContent = '⏳ Running…';
+    setRunning(true);
+
+    _runController = new AbortController();
 
     // ANSI color stripping helper
     const stripAnsi = s => s.replace(/\x1b\[[0-9;]*m/g, '');
@@ -1320,6 +1361,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: specFile.content, filename: specFile.path.replace(/[^a-zA-Z0-9_-]/g, '_') }),
+        signal: _runController.signal,
       });
 
       const reader = res.body.getReader();
@@ -1358,12 +1400,17 @@
         }
       }
     } catch (err) {
-      termOutput.innerHTML += `<span style="color:#f85149">Error: ${escHtml(err.message)}\n</span>`;
-      termStatus.textContent = '✗ Error';
-      termStatus.style.color = '#f85149';
+      if (err.name === 'AbortError') {
+        termOutput.innerHTML += `<span style="color:#e8c06b">— stopped by user —\n</span>`;
+        termStatus.textContent = '— stopped';
+        termStatus.style.color = 'var(--yellow, #a9711a)';
+      } else {
+        termOutput.innerHTML += `<span style="color:#f85149">Error: ${escHtml(err.message)}\n</span>`;
+        termStatus.textContent = '✗ Error';
+        termStatus.style.color = '#f85149';
+      }
     } finally {
-      runBtn.disabled = false;
-      runBtn.textContent = '▶ Run Tests';
+      setRunning(false);
     }
   }
 

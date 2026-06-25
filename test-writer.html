@@ -213,6 +213,10 @@
 
     .btn-generate:hover:not(:disabled) { background: var(--accent-h); }
     .btn-generate:disabled { background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border); cursor: not-allowed; }
+    .btn-generate.stopping {
+      background: var(--high-bg); color: var(--high-fg); border: 1.5px solid var(--high-fg);
+    }
+    .btn-generate.stopping:hover { filter: brightness(.92); }
 
     .gen-spinner {
       width: 14px; height: 14px;
@@ -997,8 +1001,9 @@
 
     <div class="generate-row">
       <span id="status-msg"></span>
-      <button class="btn-generate" id="gen-btn" onclick="generate()">
+      <button class="btn-generate" id="gen-btn" onclick="handleGenClick()">
         <div class="gen-spinner"></div>
+        <svg class="stop-icon" width="12" height="12" viewBox="0 0 12 12" fill="currentColor" style="display:none;flex-shrink:0"><rect x="1" y="1" width="10" height="10" rx="2"/></svg>
         <span class="gen-label">Generate Test Cases</span>
       </button>
     </div>
@@ -1139,6 +1144,17 @@
   }
 
   // ── Generate ───────────────────────────────────────────────────────────
+  let _genController = null;
+
+  function handleGenClick() {
+    const btn = document.getElementById('gen-btn');
+    if (btn.classList.contains('stopping')) {
+      if (_genController) _genController.abort();
+    } else {
+      generate();
+    }
+  }
+
   async function generate() {
     const findings = document.getElementById('findings-input').value.trim();
     if (!findings) {
@@ -1150,6 +1166,7 @@
     showProgress('Analysing findings…');
     clearResults();
 
+    _genController = new AbortController();
     let tcCount = 0;
 
     try {
@@ -1158,6 +1175,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ findings, memoryIds }),
+        signal: _genController.signal,
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -1198,11 +1216,17 @@
         }
       }
     } catch (err) {
-      setStatus('Error: ' + err.message);
+      if (err.name === 'AbortError') {
+        setStatus(allTestCases.length
+          ? `Stopped — ${allTestCases.length} test cases kept.`
+          : 'Stopped.');
+      } else {
+        setStatus('Error: ' + err.message);
+      }
     } finally {
-      hideProgress();         // always dismiss the spinner
+      hideProgress();
       setGenerating(false);
-      if (!allTestCases.length) {
+      if (!allTestCases.length && !document.getElementById('status-msg').textContent.includes('Stopped')) {
         setStatus('No test cases generated. Make sure the findings contain a testing plan or exploration results.');
       }
     }
@@ -1458,9 +1482,11 @@
   // ── UI helpers ─────────────────────────────────────────────────────────
   function setGenerating(on) {
     const btn = document.getElementById('gen-btn');
-    btn.disabled = on;
     btn.classList.toggle('loading', on);
-    btn.querySelector('.gen-label').textContent = on ? 'Generating…' : 'Generate Test Cases';
+    btn.classList.toggle('stopping', on);
+    btn.querySelector('.gen-label').textContent = on ? 'Stop' : 'Generate Test Cases';
+    btn.querySelector('.gen-spinner').style.display = on ? '' : 'none';
+    btn.querySelector('.stop-icon').style.display = on ? '' : 'none';
     document.getElementById('findings-input').disabled = on;
   }
 
