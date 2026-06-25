@@ -921,11 +921,13 @@ app.post('/api/run-tests', async (req, res) => {
   res.setHeader('Connection', 'keep-alive');
   const send = d => res.write(`data: ${JSON.stringify(d)}\n\n`);
 
-  // Write code to a temp .spec.ts file
+  // Write code to a temp .spec.ts file.
+  // Rewrite @playwright/test → playwright/test because only 'playwright' is installed.
+  const normalizedCode = code.replace(/@playwright\/test/g, 'playwright/test');
   const safeBase = filename.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
   const specFile = join(PROBE_RUNS_DIR, `${safeBase}_${Date.now()}.spec.ts`);
   try {
-    writeFileSync(specFile, code, 'utf8');
+    writeFileSync(specFile, normalizedCode, 'utf8');
   } catch (err) {
     send({ error: `Failed to write spec file: ${err.message}` });
     return res.end();
@@ -933,7 +935,7 @@ app.post('/api/run-tests', async (req, res) => {
 
   send({ status: 'starting', message: `Running ${specFile.split('/').pop()}…` });
 
-  const configPath = join(__dirname, 'playwright.runner.config.js');
+  const configPath = join(__dirname, 'playwright.runner.config.cjs');
   const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
   const proc = spawn(npx, [
