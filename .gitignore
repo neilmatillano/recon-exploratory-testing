@@ -5,3 +5,4 @@ recordings/*.webm
 memory/store.json
 *.log
 .DS_Store
+test-results/
